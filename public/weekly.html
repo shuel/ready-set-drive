@@ -1,0 +1,83 @@
+<div class="weekly-toolbar">
+
+  <div class="week-nav">
+    <button id="prev-week" type="button">←</button>
+    <button id="today-week" type="button">This Week</button>
+    <button id="next-week" type="button">→</button>
+  </div>
+
+  <h2 id="week-title" style="margin:0;"></h2>
+
+</div>
+
+<div style="margin:10px 0; display:flex; gap:10px;">
+  <button id="addLessonBtn" class="btn-primary">+ Add Lesson</button>
+  <button id="addBlockBtn" class="btn-secondary">+ Block Time</button>
+</div>
+
+<div class="weekly-calendar">
+  <div class="weekly-header" id="weekly-header"></div>
+
+  <div class="weekly-body">
+    <div class="time-col" id="time-col"></div>
+    <div class="days-grid" id="days-grid"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="lessonModalOverlay" class="modal-overlay hidden">
+  <div class="modal">
+
+    <div class="modal-header">
+      <h3 id="lessonModalTitle">Lesson</h3>
+      <button id="lessonModalClose" type="button">✕</button>
+    </div>
+
+    <!-- LESSON FIELDS -->
+    <div id="lessonFields">
+
+    <label>Date</label>
+    <input id="editLessonDate" type="date" class="form-input"/>
+
+    <label>Start</label>
+    <input id="editStartTime" type="time" class="form-input"/>
+
+    <label>End</label>
+    <input id="editEndTime" type="time" class="form-input"/>
+
+    <div class="form-row">
+        <div>
+        <label>Type</label>
+        <select id="editLessonType" class="form-input">
+            <option value="Lesson">Lesson</option>
+            <option value="Test">Test</option>
+        </select>
+        </div>
+
+        <div>
+        <label>Paid</label>
+        <select id="editLessonPaid" class="form-input">
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+        </select>
+        </div>
+        <!-- Price is auto-calculated from duration × hourly_rate -->
+        <div>
+          <label>Price (£)</label>
+        <div id="editLessonPrice" class="form-display"></div>
+      </div>
+        </div>
+
+    </div>
+
+
+    <!-- BLOCK FIELDS -->
+    <div id="blockFields" style="display:none;"></div>
+
+    <div style="margin-top:15px; text-align:right;">
+      <button id="saveLessonBtn" class="btn-primary">Save</button>
+      <button id="deleteLessonBtn" class="btn-danger">Delete</button>
+    </div>
+
+  </div>
+</div>

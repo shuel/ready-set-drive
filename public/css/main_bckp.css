@@ -1,0 +1,345 @@
+body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: #f7f7f7; padding: 20px; max-width: 1400px; margin: auto; }
+h1, h2, h4 { margin-bottom: 10px; }
+
+form:not(.student-form) {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+form input, form select { padding: 8px; font-size: 14px; }
+form button { grid-column: 1 / -1; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+form button:disabled { background: #999; cursor: not-allowed; }
+.delete-btn {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.delete-btn:hover {
+    background: #b91c1c;
+}
+table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+th, td { padding: 10px; text-align: left; }
+th { background: #f0f0f0; font-weight: 600; }
+#students-table thead th {
+  background: #2563eb;   /* modern blue */
+  color: white;
+  font-weight: 600;
+}
+#students-table {
+  border-radius: 10px;
+}
+#toggle-student-form {
+  margin-bottom: 20px;
+}
+
+.actions-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.actions-btn:hover {
+  background: #1d4ed8;
+}
+tr:nth-child(even) { background: #fafafa; }
+.overlap { background: #fee2e2 !important; }
+.warning { color: #b91c1c; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+
+/* Start of css for weekly calendar view */
+.weekly-toolbar{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-bottom:12px;
+}
+
+.weekly-calendar{
+  background:#fff;
+  border-radius:10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  overflow:hidden;
+}
+
+.weekly-header{
+  display:grid;
+  grid-template-columns: 80px repeat(7, 1fr);
+  border-bottom:1px solid #eee;
+  background:#f8fafc;
+}
+
+.header-spacer{ padding:10px; }
+.day-head{
+  padding:10px;
+  font-weight:600;
+  border-left:1px solid #eee;
+}
+
+.weekly-body{
+  display:grid;
+  grid-template-columns: 80px 1fr;
+}
+
+.time-col{
+  border-right:1px solid #eee;
+  background:#fff;
+}
+
+.time-row{
+  padding:6px 10px;
+  font-size:12px;
+  color:#666;
+  border-bottom:1px solid #f1f1f1;
+  box-sizing:border-box;
+}
+
+.days-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.day-col{
+  position:relative;
+  border-left:1px solid #f1f1f1;
+  background:
+    linear-gradient(to bottom, #f1f1f1 1px, transparent 1px);
+  background-size: 100% 60px; /* hour lines */
+}
+
+.lesson-block{
+  position:absolute;
+  left:6px;
+  right:6px;
+  border-radius:8px;
+  padding:8px;
+  background:#2563eb;
+  color:#fff;
+  font-size:12px;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+.lesson-block[data-type="Test"]{
+  background:#16a34a;
+}
+
+.lesson-block[data-paid="No"]{
+  opacity: 0.45;
+}
+
+.lb-title{ font-weight:700; }
+.lb-time{ opacity:0.9; margin-top:2px; }
+/* End of css for weekly view calendar */
+
+.modal-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.modal-overlay.hidden{ display:none; }
+
+.modal{
+  width: 420px;
+  max-width: 95vw;
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.modal-header{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.blocked-block{
+  position:absolute;
+  left:6px;
+  right:6px;
+  border-radius:8px;
+  padding:8px;
+  background:#6b7280;
+  color:#fff;
+  font-size:12px;
+  box-sizing:border-box;
+  overflow:hidden;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.form-input {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background:#2563eb;
+  color:white;
+  border:none;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.btn-danger {
+  background:#dc2626;
+  color:white;
+  border:none;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-row > div {
+  flex: 1;
+}
+
+/* ===== Student Form (Clean Grid Version) ===== */
+
+#student-form {
+  background: #fff;
+  padding: 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);  /* fixed structure */
+  gap: 10px;
+
+  margin-bottom: 15px;
+}
+
+#student-form input,
+#student-form select,
+#student-form textarea {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+#student-form textarea {
+  grid-column: span 2;
+}
+
+#student-form button {
+  grid-column: 1 / -1;
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* Name row */
+#first_name,
+#last_name {
+  grid-column: span 2;
+}
+
+/* Phone + Email */
+#phone,
+#email {
+  grid-column: span 2;
+}
+
+/* DOB small */
+#date_of_birth {
+  grid-column: span 1;
+}
+
+/* Source + Rate */
+#source,
+#hourly_rate {
+  grid-column: span 1;
+}
+
+/* Address full width */
+#address1,
+#address2 {
+  grid-column: span 4;
+}
+
+/* Town + Postcode */
+#town_city {
+  grid-column: span 3;
+}
+
+#postcode {
+  grid-column: span 1;
+}
+
+/* Notes full width */
+#notes {
+  grid-column: span 4;
+}
+
+/* Button full width */
+#student-form button {
+  grid-column: span 4;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #dc2626;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.delete-btn:hover {
+  color: #b91c1c;
+  transform: scale(1.1);
+}
+
+.delete-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.actions-btn,
+.delete-btn {
+  flex-shrink: 0;
+}
+

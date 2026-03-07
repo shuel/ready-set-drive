@@ -1,0 +1,53 @@
+<h2>Students</h2>
+
+<button id="toggle-student-form" type="button">+ Create Student</button>
+
+<div id="create-student-wrap" style="display:none; margin-top:12px;">
+
+  <form id="student-form">
+
+    <input type="text" id="first_name" placeholder="First Name *" required>
+    <input type="text" id="last_name" placeholder="Last Name *" required>
+
+    <input type="tel" id="phone" placeholder="Phone *" required>
+    <input type="email" id="email" placeholder="Email">
+
+    <input type="date" id="date_of_birth">
+
+    <select id="source" required>
+      <option value="">Source *</option>
+      <option value="SELF">Self</option>
+      <option value="AA">AA</option>
+    </select>
+
+    <input type="number" id="hourly_rate" placeholder="Rate (£) *" step="0.5" required>
+    <select id="active" required>
+      <option value="">Active *</option>
+      <option value="true">Active</option>
+      <option value="false">Inactive</option>
+    </select>
+
+    <input type="text" id="address1" placeholder="Address Line 1 *" required>
+    <input type="text" id="address2" placeholder="Address Line 2">
+
+    <input type="text" id="town_city" placeholder="Town / City *" required>
+    <input type="text" id="postcode" placeholder="Postcode *" required>
+
+    <textarea id="notes" placeholder="Notes" rows="2"></textarea>
+
+    <button type="submit" id="student-submit-btn">Add Student</button>
+
+  </form>
+</div>
+
+<table id="students-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Phone</th>
+      <th>Email</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>

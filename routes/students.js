@@ -1,0 +1,188 @@
+const express = require('express');
+const router = express.Router();
+const supabase = require('../supabaseClient');
+
+// =======================
+// GET student financial summary
+router.get('/:id/finance', async (req, res) => {
+
+  const { id } = req.params;
+
+  const { data: lessons, error } = await supabase
+    .from('lessons')
+    .select('price, paid')
+    .eq('student_id', id);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  const total = lessons.reduce((sum, l) => sum + Number(l.price || 0), 0);
+
+  const paid = lessons
+    .filter(l => l.paid)
+    .reduce((sum, l) => sum + Number(l.price || 0), 0);
+
+  const outstanding = total - paid;
+
+  res.json({
+    total,
+    paid,
+    outstanding
+  });
+
+});
+
+// =======================
+// GET single student
+router.get('/:id', async (req, res) => {
+
+  const { id } = req.params;
+
+  const { data, error } = await supabase
+    .from('students')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    return res.status(404).json({ error: 'Student not found' });
+  }
+
+  res.json(data);
+});
+
+
+// GET all students
+router.get('/', async (req, res) => {
+  const { data, error } = await supabase
+    .from('students')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+// POST create a new student
+router.post('/', async (req, res) => {
+  const {
+    first_name,
+    last_name,
+    phone,
+    email,
+    date_of_birth,
+    address1,
+    address2,
+    town_city,
+    postcode,
+    source,
+    hourly_rate,
+    notes,
+    active
+  } = req.body;
+
+  // Basic server-side validation
+  if (
+    !first_name ||
+    !last_name ||
+    !phone ||
+    !address1 ||
+    !town_city ||
+    !postcode ||
+    !source ||
+    !hourly_rate ||
+    !active
+  ) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  const { data, error } = await supabase
+    .from('students')
+    .insert([{
+      first_name,
+      last_name,
+      phone,
+      email: email || null,
+      date_of_birth: date_of_birth || null,
+      address1,
+      address2: address2 || null,
+      town_city,
+      postcode,
+      source,
+      hourly_rate,
+      notes: notes || null,
+      active
+    }]);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.status(201).json(data);
+});
+
+// UPDATE student
+router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const {
+    first_name,
+    last_name,
+    phone,
+    email,
+    date_of_birth,
+    address1,
+    address2,
+    town_city,
+    postcode,
+    source,
+    hourly_rate,
+    notes,
+    active
+  } = req.body;
+
+  if (!first_name || !last_name) {
+    return res.status(400).json({ error: 'First and last name required' });
+  }
+
+  const { data, error } = await supabase
+    .from('students')
+    .update({
+      first_name,
+      last_name,
+      phone,
+      email,
+      date_of_birth,
+      address1,
+      address2,
+      town_city,
+      postcode,
+      source,
+      hourly_rate,
+      notes,
+      active
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json(data[0]);
+});
+
+//Deleteing a student
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from('students')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ message: 'Student deleted' });
+});
+
+module.exports = router;

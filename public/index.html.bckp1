@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Driving School App</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: #f7f7f7; padding: 20px; max-width: 1000px; margin: auto; }
+    h1, h2, h4 { margin-bottom: 10px; }
+    form { background: #fff; padding: 16px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px; }
+    form input, form select { padding: 8px; font-size: 14px; }
+    form button { grid-column: 1 / -1; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; }
+    form button:disabled { background: #999; cursor: not-allowed; }
+    .delete-btn {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .delete-btn:hover {
+      background: #b91c1c;
+    }
+    table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    th, td { padding: 10px; text-align: left; }
+    th { background: #f0f0f0; font-weight: 600; }
+    tr:nth-child(even) { background: #fafafa; }
+    .overlap { background: #fee2e2 !important; }
+    .warning { color: #b91c1c; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+<h1>Ready, Set, Drive Driving School</h1>
+
+<h2>Create New Student</h2>
+<form id="student-form">
+  <input type="text" id="first_name" placeholder="First Name" required>
+  <input type="text" id="last_name" placeholder="Last Name" required>
+  <input type="text" id="phone" placeholder="Phone" required>
+  <input type="email" id="email" placeholder="Email" required>
+  <select id="source" required>
+    <option value="">Select Source</option>
+    <option value="SELF">SELF</option>
+    <option value="AA">AA</option>
+  </select>
+  <input type="number" id="hourly_rate" placeholder="Hourly Rate (£)" step="0.5" required>
+  <input type="date" id="start_date" required>
+  <input type="text" id="notes" placeholder="Notes">
+  <button type="submit">Add Student</button>
+</form>
+
+<h2>Students</h2>
+<table id="students-table">
+  <thead>
+    <tr><th>Name</th><th>Phone</th><th>Email</th><th>Actions</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+console.log("JS IS RUNNING");
+
+// ---------- CONFIG ----------
+const weeklyAvailability = {
+  Sunday:    [{ start: "09:30", end: "18:30" }],
+  Monday:    [{ start: "09:30", end: "18:30" }],
+  Tuesday:   [{ start: "09:30", end: "18:30" }],
+  Wednesday: [{ start: "09:30", end: "18:30" }],
+  Thursday:  [{ start: "09:30", end: "18:30" }],
+  Friday:    [{ start: "09:30", end: "18:30" }],
+  Saturday:  [{ start: "09:30", end: "16:30" }]
+};
+const LESSON_BUFFER_MIN = 30; // 30 min before/after
+const DEFAULT_LESSON_DURATION = 90; // 90 min
+const LESSON_STEP = 15; // 15 min steps
+
+// ---------- HELPERS ----------
+function toMinutes(time) { const [h,m] = time.split(':').map(Number); return h*60 + m; }
+function fromMinutes(mins) { const h=Math.floor(mins/60); const m=mins%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+
+function generateAvailableSlots(dateStr, lessons, lessonDuration = DEFAULT_LESSON_DURATION, step = LESSON_STEP) {
+  const date = new Date(dateStr);
+  const weekday = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][date.getDay()];
+  const slots = [];
+  const availability = weeklyAvailability[weekday];
+  if (!availability) return slots;
+
+  availability.forEach(range => {
+    let start = toMinutes(range.start);
+    const end = toMinutes(range.end);
+
+    while (start + lessonDuration <= end) {
+      const slotStart = start;
+      const slotEnd = start + lessonDuration;
+
+      const conflict = lessons.some(l => {
+        const lStart = toMinutes(l.start_time) - LESSON_BUFFER_MIN;
+        const lEnd = toMinutes(l.end_time) + LESSON_BUFFER_MIN;
+        return slotStart < lEnd && slotEnd > lStart;
+      });
+
+      if (!conflict) slots.push({ start: fromMinutes(slotStart), end: fromMinutes(slotEnd) });
+      start += step;
+    }
+  });
+
+  return slots;
+}
+
+// ---------- LOAD STUDENTS ----------
+let openLessonRow = null;
+async function loadStudents() {
+  const res = await fetch('http://localhost:5000/students');
+  const students = await res.json();
+  const tbody = document.querySelector('#students-table tbody');
+  tbody.innerHTML = '';
+
+  students.forEach(student => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${student.first_name} ${student.last_name}</td>
+      <td>${student.phone}</td>
+      <td>${student.email}</td>
+      <td><button>Lessons</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    const lessonRow = document.createElement('tr');
+    lessonRow.style.display = 'none';
+    lessonRow.innerHTML = `
+      <td colspan="4">
+        <h4>Lessons</h4>
+        <div class="warning" style="display:none"></div>
+        <form class="lesson-form">
+          <input type="date" name="lesson_date" required>
+
+          <select name="lesson_duration" required>
+            <option value="60">1 hour</option>
+            <option value="90" selected>1.5 hours</option>
+            <option value="120">2 hours</option>
+          </select>
+
+          <select name="start_time" required></select>
+
+          <button type="submit">Add Lesson</button>
+        </form>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody class="lessons-body"></tbody>
+        </table>
+      </td>
+    `;
+    tbody.appendChild(lessonRow);
+
+    tr.querySelector('button').onclick = () => {
+      if (openLessonRow && openLessonRow !== lessonRow) openLessonRow.style.display = 'none';
+      lessonRow.style.display = lessonRow.style.display === 'none' ? '' : 'none';
+      openLessonRow = lessonRow;
+      loadLessons(student.id, lessonRow);
+      setupLessonForm(student.id, lessonRow);
+    };
+  });
+}
+
+// ---------- LOAD LESSONS ----------
+async function loadLessons(studentId, lessonRow) {
+  const res = await fetch(`http://localhost:5000/lessons?student_id=${studentId}`);
+  const lessons = await res.json();
+
+  const tbody = lessonRow.querySelector('.lessons-body');
+  tbody.innerHTML = '';
+
+  lessons.forEach(l => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>${l.lesson_date}</td>
+      <td>${l.start_time.slice(0,5)} - ${l.end_time.slice(0,5)}</td>
+      <td>
+        <button class="delete-btn">Delete</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+
+    // DELETE HANDLER
+    tr.querySelector('.delete-btn').onclick = async () => {
+      const confirmDelete = confirm('Delete this lesson?');
+      if (!confirmDelete) return;
+
+      const res = await fetch(`http://localhost:5000/lessons/${l.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        alert('Failed to delete lesson');
+        return;
+      }
+
+      // Reload lessons
+      loadLessons(studentId, lessonRow);
+    };
+  });
+}
+
+// ---------- SETUP LESSON FORM ----------
+function setupLessonForm(studentId, lessonRow) {
+  const form = lessonRow.querySelector('.lesson-form');
+  const startSelect = form.start_time;
+  const durationSelect = form.lesson_duration;
+  const warning = lessonRow.querySelector('.warning');
+
+  async function updateSlots() {
+    const date = form.lesson_date.value;
+    const duration = parseInt(durationSelect.value);
+
+    if (!date || !duration) return;
+
+    const res = await fetch(`http://localhost:5000/lessons?lesson_date=${date}`);
+    const lessons = await res.json();
+
+    const slots = generateAvailableSlots(date, lessons, duration);
+
+    startSelect.innerHTML = '';
+
+    if (slots.length === 0) {
+      warning.style.display = 'block';
+      warning.textContent = 'No available slots on this date';
+
+      const opt = document.createElement('option');
+      opt.textContent = 'No slots available';
+      startSelect.appendChild(opt);
+      return;
+    }
+
+    warning.style.display = 'none';
+
+    slots.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.start;
+      opt.textContent = `${s.start} - ${s.end}`;
+      startSelect.appendChild(opt);
+    });
+  }
+
+  form.lesson_date.onchange = updateSlots;
+  durationSelect.onchange = updateSlots;
+
+  form.onsubmit = async e => {
+    e.preventDefault();
+
+    const duration = parseInt(durationSelect.value);
+    const start = form.start_time.value;
+    const end = fromMinutes(toMinutes(start) + duration);
+
+    const res = await fetch('http://localhost:5000/lessons', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: studentId,
+        lesson_date: form.lesson_date.value,
+        start_time: start,
+        end_time: end
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert('Error adding lesson: ' + (data.error || 'Unknown'));
+      return;
+    }
+
+    form.reset();
+    loadLessons(studentId, lessonRow);
+  };
+}
+
+// ---------- SETUP STUDENT FORM ----------
+const studentForm = document.getElementById('student-form');
+studentForm.onsubmit = async (e) => {
+  e.preventDefault();
+  const studentData = {
+    first_name: studentForm.first_name.value,
+    last_name: studentForm.last_name.value,
+    phone: studentForm.phone.value,
+    email: studentForm.email.value,
+    source: studentForm.source.value,
+    hourly_rate: parseFloat(studentForm.hourly_rate.value),
+    start_date: studentForm.start_date.value,
+    notes: studentForm.notes.value
+  };
+  try {
+    const res = await fetch('http://localhost:5000/students', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(studentData)
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Error adding student: ' + (data.error || 'Unknown')); return; }
+    studentForm.reset();
+    loadStudents();
+  } catch (err) { console.error(err); alert('Network error adding student'); }
+};
+
+loadStudents();
+</script>
+</body>
+</html>
