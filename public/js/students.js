@@ -14,6 +14,24 @@ async function fetchJson(url, options) {
   return { res, data };
 }
 
+// =======================
+// Normalise UK phone number
+// =======================
+function normaliseUKPhone(phone) {
+
+  if (!phone) return null;
+
+  // remove spaces
+  phone = phone.replace(/\s+/g, '');
+
+  // convert 07xxxxxxxxx → +447xxxxxxxxx
+  if (phone.startsWith('0')) {
+    return '+44' + phone.slice(1);
+  }
+
+  return phone;
+}
+
 function setupStudentFormToggle() {
   const btn = document.getElementById("toggle-student-form");
   const wrap = document.getElementById("create-student-wrap");
@@ -235,7 +253,9 @@ function setupStudentForm() {
     const payload = {
       first_name: document.getElementById("first_name").value.trim(),
       last_name: document.getElementById("last_name").value.trim(),
-      phone: document.getElementById("phone").value.trim(),
+      phone: normaliseUKPhone(
+        document.getElementById("phone").value.trim()
+      ),
       email: document.getElementById("email").value.trim() || null,
       date_of_birth: document.getElementById("date_of_birth").value || null,
       address1: document.getElementById("address1").value.trim(),
