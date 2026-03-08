@@ -20,7 +20,7 @@ function phoneForWhatsApp(phone) {
 }
 
 // Build WhatsApp lesson confirmation message
-function buildWhatsAppMessage(studentName, lessonDate, startTime, endTime) {
+function buildWhatsAppMessage(studentName, lessonDate, startTime, endTime, price, lessonType) {
 
   const date = new Date(lessonDate).toLocaleDateString("en-GB", {
     weekday: "long",
@@ -28,15 +28,20 @@ function buildWhatsAppMessage(studentName, lessonDate, startTime, endTime) {
     month: "long"
   });
 
-  return `Hi ${studentName},
+  return `🚗 Ready Set Drive Lesson Confirmation
 
-Your driving lesson with Ready Set Drive is booked.
+Hi ${studentName},
 
-Date: ${date}
-Time: ${startTime} – ${endTime}
+Your ${lessonType} has been booked.
 
-See you then 🚗`;
+📅 ${date}
+⏰ ${startTime} – ${endTime}
+💷 Price: £${price}
+
+See you then!
+Ready Set Drive`;
 }
+
 
 // Generate WhatsApp link
 function buildWhatsAppLink(phone, message) {
@@ -100,6 +105,9 @@ async function initLessons(params = {}) {
 
     window.selectedStudentPhone = student.phone;
     window.selectedStudentName = student.first_name;
+
+    document.getElementById("lessonModalTitle").textContent =
+      `Lesson – ${window.selectedStudentName}`;
 
   }
 
@@ -560,7 +568,9 @@ async function saveLesson() {
       window.selectedStudentName,
       document.getElementById("editLessonDate").value,
       document.getElementById("editStartTime").value,
-      document.getElementById("editEndTime").value
+      document.getElementById("editEndTime").value,
+      document.getElementById("editLessonPrice").textContent,
+      document.getElementById("editLessonType").value
     );
 
     const link = buildWhatsAppLink(phone, message);
