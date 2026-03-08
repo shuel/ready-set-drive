@@ -14,6 +14,35 @@ let isBlockMode = false;
 
 /* ---------------- HELPERS ---------------- */
 
+// Convert +447XXXXXXXXX → 447XXXXXXXXX for WhatsApp
+function phoneForWhatsApp(phone) {
+  return phone.replace("+", "");
+}
+
+// Build WhatsApp lesson confirmation message
+function buildWhatsAppMessage(studentName, lessonDate, startTime, endTime) {
+
+  const date = new Date(lessonDate).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long"
+  });
+
+  return `Hi ${studentName},
+
+Your driving lesson with Ready Set Drive is booked.
+
+Date: ${date}
+Time: ${startTime} – ${endTime}
+
+See you then 🚗`;
+}
+
+// Generate WhatsApp link
+function buildWhatsAppLink(phone, message) {
+  return `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+}
+
 function toMinutes(t) {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
@@ -59,10 +88,20 @@ function calculateLessonPrice(startTime, endTime, hourlyRate) {
 
 /* ---------------- INIT ---------------- */
 
-function initLessons(params = {}) {
+async function initLessons(params = {}) {
   if (!document.getElementById("prev-week")) return;
 
   selectedStudentId = params.student_id || null;
+
+  if (selectedStudentId) {
+
+    const res = await fetch(`${API}/students/${selectedStudentId}`);
+    const student = await res.json();
+
+    window.selectedStudentPhone = student.phone;
+    window.selectedStudentName = student.first_name;
+
+  }
 
   setupWeekNav();
 
@@ -510,7 +549,27 @@ async function saveLesson() {
     }
   }
 
+  // Optional WhatsApp confirmation
+  const sendWhatsApp = document.getElementById("sendWhatsApp")?.checked;
+
+  if (sendWhatsApp && window.selectedStudentPhone && window.selectedStudentName) {
+
+    const phone = phoneForWhatsApp(window.selectedStudentPhone);
+
+    const message = buildWhatsAppMessage(
+      window.selectedStudentName,
+      document.getElementById("editLessonDate").value,
+      document.getElementById("editStartTime").value,
+      document.getElementById("editEndTime").value
+    );
+
+    const link = buildWhatsAppLink(phone, message);
+
+    window.open(link, "_blank", "noopener,noreferrer");
+  }
+
   closeLessonModal();
+
   // If calendar exists → refresh weekly view
   if (document.querySelector(".weekly-calendar")) {
     await loadWeek(currentWeekStart);
@@ -520,6 +579,7 @@ async function saveLesson() {
   if (window.loadStudentLessons && window.currentStudentId) {
     window.loadStudentLessons(window.currentStudentId);
   }
+
 }
 
 async function deleteLesson() {
