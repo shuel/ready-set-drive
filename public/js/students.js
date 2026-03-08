@@ -3,7 +3,7 @@ console.log("students.js v2 LOADED");
 const API_BASE = window.API_BASE;
 
 // Global variable
-let currentStudentId = null;
+window.currentStudentId = null;
 
 // Store lessons so we can filter them without reloading from the server
 let currentLessons = [];
@@ -442,6 +442,30 @@ function renderStudentLessons(lessons) {
       }
     });
   });
+
+  // ==========================================
+  // Edit lesson
+  // ==========================================
+
+  const editButtons = container.querySelectorAll(".lesson-edit");
+
+  editButtons.forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+      const lessonId = btn.dataset.id;
+
+      // Find lesson in memory
+      const lesson = currentLessons.find(l => l.id === lessonId);
+
+      if (!lesson) return;
+
+      openLessonModal(lesson);
+
+    });
+
+  });
+
 }
 
 // Fetch and display lesson history for a student
@@ -471,10 +495,95 @@ async function loadStudentLessons(studentId) {
   renderStudentLessons(lessons);
 }
 
+// ==========================================
+// Open Edit Lesson Modal
+// ==========================================
+
+function openEditLessonModal(lesson) {
+
+  document.getElementById("edit-lesson-date").value =
+    lesson.lesson_date;
+
+  document.getElementById("edit-start-time").value =
+    lesson.start_time;
+
+  document.getElementById("edit-end-time").value =
+    lesson.end_time;
+
+  document.getElementById("edit-notes").value =
+    lesson.notes || "";
+
+  // store id globally
+  window.currentLessonEdit = lesson.id;
+
+  document.getElementById("edit-lesson-modal").style.display = "block";
+
+}
+
+// ==========================================
+// Save edited lesson
+// ==========================================
+
+document.addEventListener("click", async (e) => {
+
+  if (e.target.id !== "save-lesson-edit") return;
+
+  const lesson_date = document.getElementById("edit-lesson-date").value;
+  const start_time = document.getElementById("edit-start-time").value;
+  const end_time = document.getElementById("edit-end-time").value;
+  const notes = document.getElementById("edit-notes").value;
+
+  const res = await fetch(`${API_BASE}/lessons/${window.currentLessonEdit}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      lesson_date,
+      start_time,
+      end_time,
+      notes
+    })
+  });
+
+  if (!res.ok) {
+    alert("Failed to update lesson");
+    return;
+  }
+
+  // close modal
+  document.getElementById("edit-lesson-modal").style.display = "none";
+
+  // reload student lessons
+  loadStudentDetail(currentStudentId);
+
+});
+
 window.initStudents = function () {
   setupStudentFormToggle();
   setupStudentForm();
   loadStudents();
+
+  // Attach lesson modal buttons so edit works from student profile
+  const saveBtn = document.getElementById("saveLessonBtn");
+  const deleteBtn = document.getElementById("deleteLessonBtn");
+  const closeBtn = document.getElementById("lessonModalClose");
+
+  if (saveBtn && !saveBtn.dataset.bound) {
+    saveBtn.addEventListener("click", saveLesson);
+    saveBtn.dataset.bound = "true";
+  }
+
+  if (deleteBtn && !deleteBtn.dataset.bound) {
+    deleteBtn.addEventListener("click", deleteLesson);
+    deleteBtn.dataset.bound = "true";
+  }
+
+  if (closeBtn && !closeBtn.dataset.bound) {
+    closeBtn.addEventListener("click", closeLessonModal);
+    closeBtn.dataset.bound = "true";
+  }
+
 }
 
 //document.addEventListener("DOMContentLoaded", initStudents);

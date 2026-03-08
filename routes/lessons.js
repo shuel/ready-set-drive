@@ -9,6 +9,23 @@ function toMinutes(timeStr) {
   return h * 60 + m;
 }
 
+// =======================
+// Calculate lesson price
+// duration × student hourly rate
+function calculateLessonPrice(start_time, end_time, hourlyRate) {
+
+  const start = toMinutes(start_time);
+  const end = toMinutes(end_time);
+
+  const durationMinutes = end - start;
+
+  let price = (durationMinutes / 60) * hourlyRate;
+
+  // round to 2 decimals
+  return Math.round(price * 100) / 100;
+}
+
+
 /* function hasOverlapWithBuffer(newStart, newEnd, lessons) {
   return lessons.some(l => {
     const start = toMinutes(l.start_time);
@@ -155,10 +172,8 @@ router.post('/', async (req, res) => {
 
   // 🔹 Determine final price (auto from student if not provided)
   console.log("Incoming price:", price, typeof price);
-  // 🔹 Calculate lesson duration in minutes
-  const durationMinutes = newEnd - newStart;
-
-  // 🔹 Fetch student hourly rate
+  
+  // Get student hourly rate
   const { data: student } = await supabase
     .from('students')
     .select('hourly_rate')
@@ -167,15 +182,8 @@ router.post('/', async (req, res) => {
 
   const hourlyRate = Number(student?.hourly_rate) || 0;
 
-  // 🔹 Calculate automatic price based on duration
-  // (minutes ÷ 60) × hourly rate
-  let calculatedPrice = (durationMinutes / 60) * hourlyRate;
-
-  // 🔹 Round to 2 decimal places
-  calculatedPrice = Math.round(calculatedPrice * 100) / 100;
-
-  // 🔒 Price is always calculated from duration × hourly_rate
-  const finalPrice = calculatedPrice;
+  // Calculate price using helper
+  const finalPrice = calculateLessonPrice(start_time, end_time, hourlyRate);
 
   const isPaid = paid === true;
 
@@ -212,7 +220,6 @@ router.post('/', async (req, res) => {
   console.log("Final Price:", finalPrice);
 });
 
-
 // =======================
 // UPDATE lesson
 router.put('/:id', async (req, res) => {
@@ -243,13 +250,6 @@ router.put('/:id', async (req, res) => {
 
     const otherLessons = lessons.filter(l => l.id !== id);
 
-    /*
-    if (hasOverlapWithBuffer(newStart, newEnd, otherLessons)) {
-      return res.status(400).json({
-        error: 'Lesson overlaps another lesson or violates 30-minute buffer'
-      });
-    }
-    */
     const conflict = getOverlapWithBuffer(newStart, newEnd, otherLessons);
 
     if (conflict) {
@@ -273,6 +273,35 @@ router.put('/:id', async (req, res) => {
     updateFields.lesson_timerange =
       buildRange(lesson_date, start_time, end_time);
   }
+
+  // =========================================
+  // 🔹 Recalculate lesson price on edit
+  // =========================================
+
+  if (lesson_date && start_time && end_time) {
+
+    // Get the student's hourly rate
+    const { data: lesson, error } = await supabase
+      .from('lessons')
+      .select('student_id, students(hourly_rate)')
+      .eq('id', id)
+      .single();
+
+    if (!error && lesson) {
+
+      const hourlyRate = Number(lesson.students?.hourly_rate) || 0;
+
+      // Recalculate price using helper
+      updateFields.price = calculateLessonPrice(
+        start_time,
+        end_time,
+        hourlyRate
+      );
+
+    }
+  }
+  
+  // =========================================
 
   // 🔹 Normalise paid + revenue fields
   if (typeof paid !== 'undefined') {
@@ -303,6 +332,7 @@ router.put('/:id', async (req, res) => {
 
   res.json(data);
 });
+
 
 // =======================
 // DELETE lesson

@@ -32,13 +32,77 @@
   </div>
 
   <h3>Lesson History</h3>
+
   <div class="lesson-filters">
     <button id="filter-all">All</button>
     <button id="filter-unpaid">Unpaid</button>
     <button id="filter-paid">Paid</button>
   </div>
+
   <div id="student-lessons">
     Loading Lessons......
+  </div>
+
+  <!-- ================================= -->
+  <!-- Lesson Modal (reused from weekly) -->
+  <!-- ================================= -->
+
+  <div id="lessonModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h3 id="lessonModalTitle">Lesson</h3>
+        <button id="lessonModalClose" type="button">✕</button>
+      </div>
+
+      <!-- LESSON FIELDS -->
+      <div id="lessonFields">
+
+        <label>Date</label>
+        <input id="editLessonDate" type="date" class="form-input"/>
+
+        <label>Start</label>
+        <input id="editStartTime" type="time" class="form-input"/>
+
+        <label>End</label>
+        <input id="editEndTime" type="time" class="form-input"/>
+
+        <div class="form-row">
+
+          <div>
+            <label>Type</label>
+            <select id="editLessonType" class="form-input">
+              <option value="Lesson">Lesson</option>
+              <option value="Test">Test</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Paid</label>
+            <select id="editLessonPaid" class="form-input">
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Price (£)</label>
+            <div id="editLessonPrice" class="form-display"></div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- BLOCK FIELDS -->
+      <div id="blockFields" style="display:none;"></div>
+
+      <div style="margin-top:15px; text-align:right;">
+        <button id="saveLessonBtn" class="btn-primary">Save</button>
+        <button id="deleteLessonBtn" class="btn-danger">Delete</button>
+      </div>
+
+    </div>
   </div>
 
 </div>

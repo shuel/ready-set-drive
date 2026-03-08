@@ -106,6 +106,10 @@ async function loadWeek(weekStart) {
 
   const calendar = document.querySelector(".weekly-calendar");
 
+  // If calendar doesn't exist (e.g. student profile page), exit safely
+  if (!calendar) return;
+
+
   calendar.classList.add("fade-out");
 
   const start = fmtDate(weekStart);
@@ -319,6 +323,26 @@ function openLessonModal(l) {
 
   document.getElementById("lessonModalOverlay").classList.remove("hidden");
 
+  // Ensure modal buttons work when opened outside weekly calendar
+  const saveBtn = document.getElementById("saveLessonBtn");
+  const deleteBtn = document.getElementById("deleteLessonBtn");
+  const closeBtn = document.getElementById("lessonModalClose");
+
+  if (saveBtn && !saveBtn.dataset.bound) {
+    saveBtn.addEventListener("click", saveLesson);
+    saveBtn.dataset.bound = "true";
+  }
+
+  if (deleteBtn && !deleteBtn.dataset.bound) {
+    deleteBtn.addEventListener("click", deleteLesson);
+    deleteBtn.dataset.bound = "true";
+  }
+
+  if (closeBtn && !closeBtn.dataset.bound) {
+    closeBtn.addEventListener("click", closeLessonModal);
+    closeBtn.dataset.bound = "true";
+  }
+
   const startInput = document.getElementById("editStartTime");
   const endInput = document.getElementById("editEndTime");
 
@@ -487,7 +511,15 @@ async function saveLesson() {
   }
 
   closeLessonModal();
-  await loadWeek(currentWeekStart);
+  // If calendar exists → refresh weekly view
+  if (document.querySelector(".weekly-calendar")) {
+    await loadWeek(currentWeekStart);
+  }
+
+  // If student profile exists → refresh student lessons
+  if (window.loadStudentLessons && window.currentStudentId) {
+    window.loadStudentLessons(window.currentStudentId);
+  }
 }
 
 async function deleteLesson() {
