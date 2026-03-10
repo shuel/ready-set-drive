@@ -181,6 +181,13 @@ async function loadStudentDetail(studentId) {
   document.getElementById("student-name").textContent =
     `${student.first_name} ${student.last_name}`;
 
+  // Load instructor notes into textarea
+  loadStudentNotes(student);
+
+  document
+    .getElementById("save-notes")
+    ?.addEventListener("click", saveStudentNotes);
+
   /* =========================================
     LOAD STUDENT FINANCIAL SUMMARY
   ========================================= */
@@ -494,6 +501,34 @@ async function loadStudentLessons(studentId) {
   const res = await fetch(`${API_BASE}/lessons?student_id=${studentId}`);
   const lessons = await res.json();
 
+  // Adding new code here
+  let lessonCount = 0;
+  let totalMinutes = 0;
+
+  lessons.forEach(l => {
+
+    lessonCount++;
+
+    const start = l.start_time.split(":");
+    const end = l.end_time.split(":");
+
+    const startMinutes = (+start[0]) * 60 + (+start[1]);
+    const endMinutes = (+end[0]) * 60 + (+end[1]);
+
+    const duration = endMinutes - startMinutes;
+
+    totalMinutes += duration;
+
+  });
+
+  const hoursDriven = (totalMinutes / 60).toFixed(1);
+  
+  // 👉 UPDATE UI HERE
+  document.getElementById("progressLessons").textContent = lessonCount;
+  document.getElementById("progressHours").textContent = hoursDriven;
+  
+  // Edning new code here
+
   console.log("Lessons loaded:", lessons);
 
   currentLessons = lessons;
@@ -539,6 +574,35 @@ function openEditLessonModal(lesson) {
   document.getElementById("edit-lesson-modal").style.display = "block";
 
 }
+
+// Load existing student notes
+function loadStudentNotes(student) {
+  const notesField = document.getElementById('student-notes');
+  if (!notesField) return;
+
+  notesField.value = student.notes || '';
+}
+
+async function saveStudentNotes() {
+
+  const notes = document.getElementById('student-notes').value;
+
+  const res = await fetch(`${API_BASE}/students/${window.currentStudentId}/notes`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes })
+  });
+
+  if (!res.ok) {
+    alert("Failed to save notes");
+    return;
+  }
+
+  alert("Notes saved ✔");
+
+}
+
+
 
 // ==========================================
 // Save edited lesson

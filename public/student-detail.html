@@ -1,37 +1,102 @@
 <div id="student-detail">
 
-  <button id="back-to-students">← Back to Students</button>
+  <button id="back-to-students" class="back-btn">← Back to Students</button>
 
-  <!-- Student header -->
+  <!-- Student Header -->
   <div class="student-profile-header">
     <h2 id="student-name"></h2>
   </div>
 
-  <!-- Finance summary card -->
-  <div class="dashboard-card student-finance-card">
+  <!-- TOP DASHBOARD SECTION -->
+  <div class="student-top-grid">
 
-    <div class="dash-top">
-      <div class="dash-label">Student Finance</div>
+    <!-- Test Readiness -->
+    <div class="dashboard-card student-status-card">
+
+      <div class="dash-top">
+        <div class="dash-label">Test Readiness</div>
+      </div>
+
+      <div class="status-row">
+        <div>Status</div>
+        <strong id="testStatus">In Progress</strong>
+      </div>
+
+      <div class="status-row">
+        <div>Instructor Rating</div>
+        <select id="studentRating" class="form-input">
+          <option value="1">1 - Beginner</option>
+          <option value="2">2 - Improving</option>
+          <option value="3">3 - Nearly Ready</option>
+          <option value="4">4 - Test Ready</option>
+        </select>
+      </div>
+
     </div>
 
-    <div class="finance-row">
-      <div>Total Lesson Value</div>
-      <strong id="student-total">£0</strong>
+    <!-- Finance -->
+    <div class="dashboard-card student-finance-card">
+
+      <div class="dash-top">
+        <div class="dash-label">Student Finance</div>
+      </div>
+
+      <div class="finance-row">
+        <div>Total Lesson Value</div>
+        <strong id="student-total">£0</strong>
+      </div>
+
+      <div class="finance-row">
+        <div>Paid</div>
+        <strong id="student-paid">£0</strong>
+      </div>
+
+      <div class="finance-row">
+        <div>Outstanding</div>
+        <strong id="student-outstanding">£0</strong>
+      </div>
+
     </div>
 
-    <div class="finance-row">
-      <div>Paid</div>
-      <strong id="student-paid">£0</strong>
+    <!-- Progress -->
+    <div class="dashboard-card student-progress-card">
+
+      <div class="dash-top">
+        <div class="dash-label">Student Progress</div>
+      </div>
+
+      <div class="progress-row">
+        <div>Lessons Completed</div>
+        <strong id="progressLessons">0</strong>
+      </div>
+
+      <div class="progress-row">
+        <div>Hours Driven</div>
+        <strong id="progressHours">0</strong>
+      </div>
+
     </div>
 
-    <div class="finance-row">
-      <div>Outstanding</div>
-      <strong id="student-outstanding">£0</strong>
+    <!-- Instructor Notes -->
+    <div class="dashboard-card notes-card">
+
+      <div class="dash-top">
+        <div class="dash-label">Instructor Notes</div>
+      </div>
+
+      <textarea id="student-notes" placeholder="Add notes about student's progress..."></textarea>
+
+      <button id="save-notes" class="btn-primary">Save Notes</button>
+
     </div>
 
   </div>
 
-  <h3>Lesson History</h3>
+  <!-- LESSON HISTORY SECTION -->
+
+  <div class="section-header">
+    <h3>Lesson History</h3>
+  </div>
 
   <div class="lesson-filters">
     <button id="filter-all">All</button>
@@ -89,6 +154,7 @@
             <label>Price (£)</label>
             <div id="editLessonPrice" class="form-display"></div>
           </div>
+
           <label class="checkbox-row">
             <input type="checkbox" id="sendWhatsApp">
             Send WhatsApp confirmation

@@ -185,4 +185,22 @@ router.delete('/:id', async (req, res) => {
   res.json({ message: 'Student deleted' });
 });
 
+// Update instructor notes
+router.put('/:id/notes', async (req, res) => {
+  const { id } = req.params;
+  const { notes } = req.body;
+
+  const { data, error } = await supabase
+    .from('students')
+    .update({ notes })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json(data);
+});
+
+
 module.exports = router;
