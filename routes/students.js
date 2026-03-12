@@ -53,16 +53,92 @@ router.get('/:id', async (req, res) => {
 });
 
 
-// GET all students
+// GET all students with lesson stats
 router.get('/', async (req, res) => {
+
   const { data, error } = await supabase
     .from('students')
-    .select('*')
+    .select(`
+      *,
+      lessons:lessons (
+        lesson_date,
+        id,
+        start_time,
+        end_time,
+        price,
+        paid
+      )
+    `)
     .order('created_at', { ascending: false });
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+
+  // Calculate lesson stats
+  const studentsWithStats = data.map(student => {
+
+    const lessons = student.lessons || [];
+
+    const lessons_completed = lessons.length;
+
+    const total_lesson_value = lessons.reduce((total, l) => {
+      return total + (l.price || 0);
+    }, 0);
+
+    const total_paid = lessons.reduce((total, l) => {
+      return total + (l.paid ? (l.price || 0) : 0);
+    }, 0);
+
+    const outstanding_balance = total_lesson_value - total_paid;
+
+    const hours_driven = lessons.reduce((total, l) => {
+      if (!l.start_time || !l.end_time) return total;
+
+      const start = new Date(`1970-01-01T${l.start_time}`);
+      const end = new Date(`1970-01-01T${l.end_time}`);
+
+      return total + ((end - start) / 3600000);
+    }, 0);
+
+    const now = new Date();
+    const today = new Date().toDateString();
+
+    // Lessons happening today (past OR future)
+    const todayLessons = lessons.filter(l =>
+      new Date(`${l.lesson_date}T${l.start_time}`).toDateString() === today
+    );
+
+    // Future lessons
+    const futureLessons = lessons
+      .filter(l => new Date(`${l.lesson_date}T${l.start_time}`) > now)
+      .sort((a, b) =>
+        new Date(`${a.lesson_date}T${a.start_time}`) -
+        new Date(`${b.lesson_date}T${b.start_time}`)
+      );
+
+    let nextLesson = null;
+
+    if (todayLessons.length) {
+      nextLesson = todayLessons[0];
+    } else if (futureLessons.length) {
+      nextLesson = futureLessons[0];
+    }
+
+    return {
+      ...student,
+      lessons: undefined, // remove lesson array
+      lessons_completed,
+      hours_driven: Number(hours_driven.toFixed(1)),
+      next_lesson: nextLesson,
+      outstanding_balance
+    };
+
+  });
+
+
+  res.json(studentsWithStats);
+
 });
+
 
 // POST create a new student
 router.post('/', async (req, res) => {

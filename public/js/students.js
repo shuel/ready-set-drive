@@ -8,11 +8,46 @@ window.currentStudentId = null;
 // Store lessons so we can filter them without reloading from the server
 let currentLessons = [];
 
+// used for pagenation
+let studentLimit = 20;
+
+// Student dashboard filtering state
+let studentFilter = "active";
+let studentSearch = "";
+let allStudents = [];
+
 async function fetchJson(url, options) {
   const res = await fetch(url, options);
   const data = await res.json().catch(() => ({}));
   return { res, data };
 }
+
+function formatNextLesson(lesson) {
+
+  if (!lesson) return "⚠ No lesson booked";
+
+  const lessonDate = new Date(`${lesson.lesson_date}T${lesson.start_time}`);
+  const today = new Date();
+
+  const todayStr = today.toDateString();
+
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (lessonDate.toDateString() === todayStr) {
+    return `📅 Today ${lesson.start_time.slice(0,5)}`;
+  }
+
+  if (lessonDate.toDateString() === tomorrow.toDateString()) {
+    return `📅 Tomorrow ${lesson.start_time.slice(0,5)}`;
+  }
+
+  const options = { weekday: "short", day: "numeric", month: "short" };
+
+  return `📅 ${lessonDate.toLocaleDateString("en-GB", options)} ${lesson.start_time.slice(0,5)}`;
+
+}
+
 
 // =======================
 // Normalise UK phone number
@@ -74,95 +109,240 @@ async function loadStudents() {
     return;
   }
 
-  // Loop through each student
-  data.forEach(s => {
+  allStudents = data;
 
-    // Create outer card
-    const card = document.createElement("div");
-    card.className = "student-card";
+  renderStudents();
 
-    // Build card content
-    card.innerHTML = `
+}
 
-      <!-- Top Row: Name + Status -->
-      <div class="student-header">
-        <div class="student-name">
-          ${s.first_name} ${s.last_name}
-        </div>
+function renderSection(title, students) {
 
-        <span class="${s.active ? 'badge-active' : 'badge-inactive'}">
-          ${s.active ? 'Active' : 'Inactive'}
-        </span>
-      </div>
+  if (!students.length) return;
 
-      <!-- Contact Info -->
-      <div class="student-meta">
-        📞 ${s.phone || "No phone"}
-      </div>
+  const mainContainer = document.getElementById("students-list");
+  if (!mainContainer) return;
 
-      <!-- Bottom Row: Actions -->
-      <div class="student-actions">
-        <button class="actions-btn edit-btn">Edit</button>
-        <button class="actions-btn diary-btn">Weekly Diary</button>
-        <button class="delete-btn" title="Delete Student">
-          <i data-lucide="trash-2"></i>
-        </button>
-      </div>
-    `;
+  // Section wrapper
+  const section = document.createElement("div");
+  section.className = "student-section";
 
-    // ===== Attach Event Listeners =====
+  // Section title
+  const heading = document.createElement("h3");
+  heading.className = "student-section-title";
+  heading.textContent = `${title} (${students.length})`;
 
-    // When a student card is clicked open the student detail view
-    card.addEventListener("click", async () => {
+  // Grid for cards
+  const grid = document.createElement("div");
+  grid.className = "students-grid";
 
-      // load the student detail page
-      await loadSection("student-detail");
+  section.appendChild(heading);
+  section.appendChild(grid);
 
-      // Wait a moment for the DOM to render
-      setTimeout(() => {
-        loadStudentDetail(s.id);
-      }, 0);
+  students.forEach(s => {
+    renderStudentCard(s, grid);
+  });
 
-    });
+  mainContainer.appendChild(section);
 
-    // Weekly Diary
-    card.querySelector(".diary-btn").addEventListener("click", (e) => {
-      e.stopPropagation(); // prevent card click
-      loadSection('weekly', { student_id: s.id });
-    });
+}
 
-    // Edit
-    card.querySelector(".edit-btn").addEventListener("click", (e) => {
-      e.stopPropagation(); // prevent card click
-      openEditStudentModal(s.id);
-    });
+function renderStudents() {
 
-    // Delete
-    card.querySelector(".delete-btn").addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const confirmDelete = confirm("Are you sure you want to delete this student?");
-      if (!confirmDelete) return;
+  const container = document.getElementById("students-list");
+  if (!container) return;
 
-      const response = await fetch(`/students/${s.id}`, {
-        method: "DELETE"
-      });
+  container.innerHTML = "";
 
-      if (!response.ok) {
-        alert("Error deleting student");
-        return;
-      }
+  let students = getFilteredStudents();
 
-      await loadStudents();
-    });
+  const today = new Date().toDateString();
 
-    // Add card to container
-    container.appendChild(card);
+  // Smart sorting
+  students.sort((a, b) => {
+
+    const aDate = a.next_lesson
+      ? new Date(`${a.next_lesson.lesson_date}T${a.next_lesson.start_time}`)
+      : null;
+
+    const bDate = b.next_lesson
+      ? new Date(`${b.next_lesson.lesson_date}T${b.next_lesson.start_time}`)
+      : null;
+
+    const aToday = aDate && aDate.toDateString() === today;
+    const bToday = bDate && bDate.toDateString() === today;
+
+    if (aToday && !bToday) return -1;
+    if (!aToday && bToday) return 1;
+
+    if (aDate && bDate) return aDate - bDate;
+
+    if (!aDate && bDate) return 1;
+    if (aDate && !bDate) return -1;
+
+    return 0;
+  });
+
+  const countEl = document.getElementById("student-count");
+
+  if (countEl) {
+    // Work out how many students are actually visible after limit is applied
+    const visibleCount =
+      studentLimit === Infinity ? students.length : Math.min(students.length, studentLimit);
+
+    countEl.textContent = `Showing ${visibleCount} of ${allStudents.length} students`;
+  }
+
+  // Apply student display limit AFTER sorting
+  students = students.slice(0, studentLimit);
+
+  const todayStudents = [];
+  const upcomingStudents = [];
+  const noLessonStudents = [];
+
+  students.forEach(s => {
+
+    if (!s.next_lesson) {
+      noLessonStudents.push(s);
+      return;
+    }
+
+    const lessonDate = new Date(`${s.next_lesson.lesson_date}T${s.next_lesson.start_time}`);
+
+    if (lessonDate.toDateString() === today) {
+      todayStudents.push(s);
+    } else {
+      upcomingStudents.push(s);
+    }
 
   });
 
-  // Re-render Lucide icons
+  renderSection("Today", todayStudents);
+  renderSection("Upcoming Lessons", upcomingStudents);
+  renderSection("No Lesson Booked", noLessonStudents);
+
   lucide.createIcons();
+
 }
+
+function renderStudentCard(s, container) {
+
+  // Student Readiness
+  let readiness = "beginner";
+  let readinessLabel = "Beginner";
+
+  if (s.hours_driven >= 20) {
+    readiness = "ready";
+    readinessLabel = "Test Ready";
+  } else if (s.hours_driven >= 10) {
+    readiness = "progress";
+    readinessLabel = "Mid Progress";
+  }
+
+  const card = document.createElement("div");
+  card.className = `student-card readiness-${readiness}`;
+
+  card.innerHTML = `
+    <div class="student-header">
+      <div class="student-name">
+        ${s.first_name} ${s.last_name}
+      </div>
+
+      <span class="${s.active ? 'badge-active' : 'badge-inactive'}">
+        ${s.active ? 'Active' : 'Inactive'}
+      </span>
+    </div>
+
+    <div class="student-meta">
+      📞 ${s.phone || "No phone"}
+    </div>
+
+    <div class="student-progress">
+      <span>Lessons: ${s.lessons_completed || 0}</span>
+      <span>Hours: ${s.hours_driven || 0}</span>
+      <span>⭐ ${s.instructor_rating || "-"}</span>
+    </div>
+
+    <div class="student-readiness">
+      ${readinessLabel}
+    </div>
+
+    <div class="student-next-lesson">
+      ${formatNextLesson(s.next_lesson)}
+    </div>
+
+    <div class="student-balance ${s.outstanding_balance > 0 ? 'owing' : 'paid'}">
+      ${
+        s.outstanding_balance > 0
+          ? `💷 Owes £${s.outstanding_balance}`
+          : "💷 All Paid"
+      }
+    </div>
+
+    <div class="student-actions">
+      <button class="actions-btn edit-btn">Edit</button>
+      <button class="actions-btn diary-btn">Weekly Diary</button>
+      <button class="delete-btn" title="Delete Student">
+        <i data-lucide="trash-2"></i>
+      </button>
+    </div>
+  `;
+
+  card.addEventListener("click", async () => {
+    await loadSection("student-detail");
+    setTimeout(() => {
+      loadStudentDetail(s.id);
+    }, 0);
+  });
+
+  card.querySelector(".diary-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    loadSection('weekly', { student_id: s.id });
+  });
+
+  card.querySelector(".edit-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    openEditStudentModal(s.id);
+  });
+
+  card.querySelector(".delete-btn").addEventListener("click", async (e) => {
+    e.stopPropagation();
+
+    const confirmDelete = confirm("Are you sure you want to delete this student?");
+    if (!confirmDelete) return;
+
+    const response = await fetch(`/students/${s.id}`, { method: "DELETE" });
+
+    if (!response.ok) {
+      alert("Error deleting student");
+      return;
+    }
+
+    await loadStudents();
+  });
+
+  container.appendChild(card);
+
+}
+
+function getFilteredStudents() {
+  let filtered = [...allStudents];
+
+  if (studentFilter !== "all") {
+    const activeValue = studentFilter === "active";
+    filtered = filtered.filter(s => s.active === activeValue);
+  }
+
+  if (studentSearch.trim()) {
+    const q = studentSearch.toLowerCase();
+
+    filtered = filtered.filter(s =>
+      `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
+    );
+  }
+
+  return filtered;
+}
+
 
 // Fetch student information and display it on the student detail page
 async function loadStudentDetail(studentId) {
@@ -647,6 +827,53 @@ window.initStudents = function () {
   setupStudentFormToggle();
   setupStudentForm();
   loadStudents();
+
+  // Student limit dropdown
+  const limitSelect = document.getElementById("student-limit");
+
+  if (limitSelect) {
+    limitSelect.addEventListener("change", (e) => {
+
+      const value = e.target.value;
+
+      studentLimit = value === "all" ? Infinity : parseInt(value);
+
+      renderStudents();
+
+    });
+  }
+
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+
+    btn.addEventListener("click", () => {
+
+      document.querySelectorAll(".filter-btn")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      studentFilter = btn.dataset.filter;
+
+      renderStudents();
+
+    });
+
+  });
+
+  const searchInput = document.getElementById("student-search");
+
+  if (searchInput) {
+
+    searchInput.addEventListener("input", (e) => {
+
+      studentSearch = e.target.value;
+
+      renderStudents();
+
+    });
+
+  }
+
 
   // Attach lesson modal buttons so edit works from student profile
   const saveBtn = document.getElementById("saveLessonBtn");
