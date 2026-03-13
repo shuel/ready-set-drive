@@ -22,6 +22,47 @@ async function fetchJson(url, options) {
   return { res, data };
 }
 
+async function loadStudentTests(studentId) {
+
+  const tbody = document.getElementById("student-tests");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="5">Loading...</td></tr>`;
+
+  const { res, data } = await fetchJson(`${API_BASE}/tests/student/${studentId}`);
+
+  if (!res.ok) {
+    tbody.innerHTML = `<tr><td colspan="5">Failed to load tests</td></tr>`;
+    return;
+  }
+
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="5">No tests recorded</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = "";
+
+  data.forEach(t => {
+
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${t.test_type}</td>
+      <td>${t.test_date}</td>
+      <td>${t.attempt_number || ""}</td>
+      <td class="test-result ${t.result}">${t.result}</td>
+      <td>
+        <button class="delete-test" data-id="${t.id}">Delete</button>
+      </td>
+    `;
+
+    tbody.appendChild(row);
+
+  });
+
+}
+
 function formatNextLesson(lesson) {
 
   if (!lesson) return "⚠ No lesson booked";
@@ -396,6 +437,7 @@ async function loadStudentDetail(studentId) {
     if (container) {
       clearInterval(waitForLessonsContainer);
       loadStudentLessons(studentId);
+      loadStudentTests(studentId);
     }
 
   }, 10);
