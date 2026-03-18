@@ -1108,3 +1108,21 @@ tr:nth-child(even) { background: #fafafa; }
   background:#ccc;
   border-radius:6px;
 }
+
+.student-search-results{
+  border:1px solid #ddd;
+  border-radius:6px;
+  max-height:150px;
+  overflow-y:auto;
+  background:white;
+  margin-top:4px;
+}
+
+.student-search-item{
+  padding:8px 10px;
+  cursor:pointer;
+}
+
+.student-search-item:hover{
+  background:#f5f5f5;
+}

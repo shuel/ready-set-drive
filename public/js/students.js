@@ -1,5 +1,3 @@
-console.log("students.js v2 LOADED");
-
 const API_BASE = window.API_BASE;
 
 // Global variable
@@ -16,11 +14,11 @@ let studentFilter = "active";
 let studentSearch = "";
 let allStudents = [];
 
-async function fetchJson(url, options) {
+/*async function fetchJson(url, options = {}) {
   const res = await fetch(url, options);
   const data = await res.json().catch(() => ({}));
   return { res, data };
-}
+}*/
 
 async function loadStudentTests(studentId) {
 
@@ -58,6 +56,68 @@ async function loadStudentTests(studentId) {
     `;
 
     tbody.appendChild(row);
+
+  });
+
+}
+
+function setupTestModal(){
+
+  document.addEventListener("click", (e) => {
+
+    if(e.target.id === "add-test-btn"){
+
+      const overlay = document.getElementById("testModalOverlay");
+      if(!overlay) return;
+
+      overlay.classList.remove("hidden");
+    }
+
+    if(e.target.id === "testModalClose"){
+
+      const overlay = document.getElementById("testModalOverlay");
+      if(!overlay) return;
+
+      overlay.classList.add("hidden");
+    }
+
+  });
+
+}
+
+function setupSaveTest(){
+
+  document.addEventListener("click", async (e) => {
+
+    if(e.target.id !== "saveTestBtn") return;
+
+    const test_type = document.getElementById("testType").value;
+    const test_date = document.getElementById("testDate").value;
+    const result = document.getElementById("testResult").value;
+    const notes = document.getElementById("testNotes").value;
+
+    const student_id = window.currentStudentId;
+
+    const body = {
+      student_id,
+      test_type,
+      test_date,
+      result,
+      notes
+    };
+
+    const { res, data } = await fetchJson(`${API_BASE}/tests`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      document.getElementById("testModalOverlay").classList.add("hidden");
+      loadStudentTests(student_id);
+    }
 
   });
 
@@ -132,8 +192,6 @@ function hideStudentForm() {
 
 // ===== Load & Render Students as Cards =====
 async function loadStudents() {
-
-  console.log("loadStudents running");
 
   // Get the new card container
   const container = document.getElementById("students-list");
@@ -394,8 +452,6 @@ async function loadStudentDetail(studentId) {
   // Request student data from API
   const res = await fetch(`${API_BASE}/students/${studentId}`);
 
-  console.log("Student ID:", studentId);
-
   const student = await res.json();
 
   // Display student name at the top of the page
@@ -416,8 +472,6 @@ async function loadStudentDetail(studentId) {
   // Request finance data
   const financeRes = await fetch(`${API_BASE}/students/${studentId}/finance`);
   const finance = await financeRes.json();
-
-  console.log("Student ID:", studentId);
 
   // Display totals
   document.getElementById("student-total").textContent =
@@ -589,8 +643,6 @@ async function openEditStudentModal(id) {
 // Render student lesson rows into the table
 function renderStudentLessons(lessons) {
 
-  console.log("Rendering student lessons:", lessons);
-
   const container = document.getElementById("student-lessons");
 
   if (!container) {
@@ -751,8 +803,6 @@ async function loadStudentLessons(studentId) {
   
   // Edning new code here
 
-  console.log("Lessons loaded:", lessons);
-
   currentLessons = lessons;
 
   const container = document.getElementById("student-lessons");
@@ -766,8 +816,6 @@ async function loadStudentLessons(studentId) {
     container.innerHTML = "<p>No lessons yet</p>";
     return;
   }
-
-  console.log("Rendering lessons table");
 
   renderStudentLessons(lessons);
 }
@@ -869,6 +917,8 @@ window.initStudents = function () {
   setupStudentFormToggle();
   setupStudentForm();
   loadStudents();
+  setupTestModal();
+  setupSaveTest();
 
   // Student limit dropdown
   const limitSelect = document.getElementById("student-limit");

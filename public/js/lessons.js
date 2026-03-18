@@ -69,11 +69,6 @@ function addDays(d, n) {
   x.setDate(x.getDate() + n);
   return x;
 }
-async function fetchJson(url) {
-  const res = await fetch(url);
-  const data = await res.json().catch(() => ({}));
-  return { res, data };
-}
 
 // 🔹 Calculate price preview based on duration × hourly rate
 function calculateLessonPrice(startTime, endTime, hourlyRate) {
@@ -97,6 +92,7 @@ async function initLessons(params = {}) {
   if (!document.getElementById("prev-week")) return;
 
   selectedStudentId = params.student_id || null;
+  window.isStudentView = !!params.student_id;
 
   if (selectedStudentId) {
 
@@ -124,6 +120,7 @@ async function initLessons(params = {}) {
   });
 
   loadWeek(currentWeekStart);
+  setupStudentSearch();
 }
 
 window.initLessons = initLessons;
@@ -341,6 +338,7 @@ function openLessonModal(l) {
 
   //debug line to be removed
   console.log("Paid from DB:", l.paid, typeof l.paid);
+  console.log("OPEN EDIT MODAL", l);
 
   // Store hourly rate on modal for live calculations
   window.currentHourlyRate = l.students?.hourly_rate || 0;
@@ -357,7 +355,32 @@ function openLessonModal(l) {
   isBlockMode = false;
   selectedLessonId = l.id;
 
+  if (l.student_id) {
+    if (typeof toggleStudentSelect === "function") {
+      toggleStudentSelect(false); // editing existing lesson
+    }
+  } else {
+    if (typeof toggleStudentSelect === "function") {
+      toggleStudentSelect(true);
+    }
+  }
+
   document.getElementById("lessonModalTitle").textContent = l.student_name || "Lesson";
+  const studentSearch = document.getElementById("lessonStudentSearch");
+  const studentResults = document.getElementById("lessonStudentResults");
+
+  if (studentSearch && studentResults) {
+    if (l.student_id) {
+      studentSearch.value = l.student_name || "";
+      studentSearch.style.display = "none";
+      studentResults.style.display = "none";
+    } else {
+      studentSearch.value = "";
+      studentSearch.style.display = "block";
+      studentResults.style.display = "block";
+    }
+  }
+
   document.getElementById("editLessonDate").value = l.lesson_date;
   document.getElementById("editStartTime").value = l.start_time.slice(0,5);
   document.getElementById("editEndTime").value = l.end_time.slice(0,5);
@@ -368,27 +391,11 @@ function openLessonModal(l) {
     paidSelect.value = l.paid ? "Yes" : "No";
   }
 
-  document.getElementById("lessonModalOverlay").classList.remove("hidden");
-
-  // Ensure modal buttons work when opened outside weekly calendar
-  const saveBtn = document.getElementById("saveLessonBtn");
-  const deleteBtn = document.getElementById("deleteLessonBtn");
-  const closeBtn = document.getElementById("lessonModalClose");
-
-  if (saveBtn && !saveBtn.dataset.bound) {
-    saveBtn.addEventListener("click", saveLesson);
-    saveBtn.dataset.bound = "true";
-  }
-
-  if (deleteBtn && !deleteBtn.dataset.bound) {
-    deleteBtn.addEventListener("click", deleteLesson);
-    deleteBtn.dataset.bound = "true";
-  }
-
-  if (closeBtn && !closeBtn.dataset.bound) {
-    closeBtn.addEventListener("click", closeLessonModal);
-    closeBtn.dataset.bound = "true";
-  }
+  const modal = getLessonModal();
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  // Search student
+  setupStudentSearch();
 
   const startInput = document.getElementById("editStartTime");
   const endInput = document.getElementById("editEndTime");
@@ -436,12 +443,47 @@ async function openCreateLessonModal() {
   isBlockMode = false;
   selectedLessonId = null;
 
+  if (selectedStudentId && isStudentView) {
+    if (typeof toggleStudentSelect === "function") {
+      toggleStudentSelect(false); // coming from student profile
+    }
+  } else {
+    if (typeof toggleStudentSelect === "function") {
+      toggleStudentSelect(true); // coming from weekly
+    }
+  }
+
+  // 👇 ensure student is set when coming from student view
+  if (selectedStudentId && window.isStudentView) {
+    window.selectedStudentIdForLesson = selectedStudentId;
+  }
+
   // Set modal defaults
   document.getElementById("lessonModalTitle").textContent = "Create Lesson";
   document.getElementById("editLessonType").value = "Lesson";
   document.getElementById("editLessonPaid").value = "No";
 
-  document.getElementById("lessonModalOverlay").classList.remove("hidden");
+  const studentSearch = document.getElementById("lessonStudentSearch");
+  const studentResults = document.getElementById("lessonStudentResults");
+
+  if (studentSearch && studentResults) {
+    if (window.currentStudentId) {
+      studentSearch.value = window.selectedStudentName || "";
+      studentSearch.style.display = "none";
+      studentResults.style.display = "none";
+    } else {
+      studentSearch.value = "";
+      studentSearch.dataset.studentId = "";
+      studentSearch.style.display = "block";
+      studentResults.style.display = "block";
+    }
+  }
+
+  const modal = getLessonModal();
+  if (!modal) return;
+
+  modal.classList.remove("hidden");
+  setupStudentSearch();
 
   const startInput = document.getElementById("editStartTime");
   const endInput = document.getElementById("editEndTime");
@@ -477,6 +519,21 @@ function openBlockModal() {
 
   document.getElementById("lessonModalTitle").textContent = "Create Blocked Time";
 
+  const studentSearch = document.getElementById("lessonStudentSearch");
+  const studentResults = document.getElementById("lessonStudentResults");
+
+  if (selectedStudentId) {
+    // Opened from student profile
+    studentSearch.value = window.selectedStudentName || "";
+    studentSearch.style.display = "none";
+    studentResults.style.display = "none";
+  } else {
+    // Opened from global calendar
+    studentSearch.value = "";
+    studentSearch.style.display = "block";
+    studentResults.style.display = "block";
+  }
+
   blockFields.innerHTML = `
     <label>Date</label>
     <input id="blockDate" type="date" class="form-input"/>
@@ -492,14 +549,62 @@ function openBlockModal() {
   document.getElementById("blockStart").value = "12:00";
   document.getElementById("blockEnd").value = "13:00";
 
-  document.getElementById("lessonModalOverlay").classList.remove("hidden");
+  const modal = getLessonModal();
+  if (!modal) return;
+  setupStudentSearch();
+
 }
 
 function closeLessonModal() {
-  document.getElementById("lessonModalOverlay").classList.add("hidden");
+  const modal = getLessonModal();
+  if (!modal) return;
+  modal.classList.add("hidden");
+}
+
+function setupStudentSearch(){
+
+  const input = document.getElementById("lessonStudentSearch");
+  const results = document.getElementById("lessonStudentResults");
+
+  if(!input || !results) return;
+
+  input.addEventListener("input", () => {
+
+    const query = input.value.toLowerCase();
+
+    results.innerHTML = "";
+
+    if(!query) return;
+
+    const matches = window.allStudents.filter(s =>
+      `${s.first_name} ${s.last_name}`.toLowerCase().includes(query)
+    );
+
+    matches.slice(0,5).forEach(student => {
+
+      const div = document.createElement("div");
+      div.className = "student-search-item";
+      div.textContent = `${student.first_name} ${student.last_name}`;
+
+      div.addEventListener("click", () => {
+        input.value = `${student.first_name} ${student.last_name}`;
+        input.dataset.studentId = student.id;
+        results.innerHTML = "";
+      });
+
+      results.appendChild(div);
+
+    });
+
+  });
+
 }
 
 async function saveLesson() {
+
+  const student_id =
+    document.getElementById("lessonStudentSearch")?.dataset.studentId
+    || selectedStudentId;
 
   if (isBlockMode) {
     const block_date = document.getElementById("blockDate").value;
@@ -517,13 +622,13 @@ async function saveLesson() {
 
   } else if (isCreateMode) {
 
-    if (!selectedStudentId) return alert("Select a student first");
+    if (!student_id) return alert("Select a student first");
 
     const res = await fetch(`${API}/lessons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        student_id: selectedStudentId,
+        student_id: student_id,
         lesson_date: document.getElementById("editLessonDate").value,
         start_time: document.getElementById("editStartTime").value,
         end_time: document.getElementById("editEndTime").value,

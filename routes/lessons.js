@@ -170,9 +170,6 @@ router.post('/', async (req, res) => {
     });
   }
 
-  // 🔹 Determine final price (auto from student if not provided)
-  console.log("Incoming price:", price, typeof price);
-  
   // Get student hourly rate
   const { data: student } = await supabase
     .from('students')
@@ -215,9 +212,6 @@ router.post('/', async (req, res) => {
 
   res.status(201).json(data);
 
-  console.log("Duration:", durationMinutes);
-  console.log("Hourly:", hourlyRate);
-  console.log("Final Price:", finalPrice);
 });
 
 // =======================

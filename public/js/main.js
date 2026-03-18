@@ -1,5 +1,39 @@
 window.API_BASE = "http://localhost:5000";
 
+// global variable to store all students
+window.allStudents = [];
+
+// ================================
+// Shared API helper
+// ================================
+
+window.toggleStudentSelect = function(show) {
+  const wrap = document.getElementById("studentSelectWrap");
+  if (!wrap) return;
+
+  wrap.style.display = show ? "block" : "none";
+};
+
+async function loadAllStudents() {
+
+  const { res, data } = await fetchJson(`${API_BASE}/students`);
+
+  if(res.ok){
+    window.allStudents = data;
+  }
+
+}
+
+function getLessonModal() {
+  return document.getElementById("lessonModalOverlay");
+}
+
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  return { res, data };
+}
+
 function loadSection(section, params = {}) {
   fetch(`${section}.html`)
     .then(res => res.text())
@@ -78,8 +112,9 @@ document.querySelectorAll(".nav-links button").forEach(btn => {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
+  loadAllStudents();
   loadSection('students');
-
+  
   // Set Students button as active on initial load
   const firstBtn = document.querySelector('.nav-links button[data-section="students"]');
   if (firstBtn) firstBtn.classList.add('active');
