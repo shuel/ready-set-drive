@@ -1,5 +1,7 @@
 <div id="student-detail">
 
+  <div id="app-message" class="app-message hidden"></div>
+
   <button id="back-to-students" class="back-btn">← Back to Students</button>
 
   <!-- Student Header -->
@@ -19,7 +21,7 @@
 
       <div class="status-row">
         <div>Status</div>
-        <strong id="testStatus">In Progress</strong>
+        <span id="testStatus" class="status-badge">In Progress</span>
       </div>
 
       <div class="status-row">
@@ -43,26 +45,38 @@
         <button id="add-test-btn" type="button" class="btn-primary btn-small">+ Add</button>
       </div>
 
-      <table class="tests-table">
-        <thead>
-          <tr>
-            <th>Type</th>
-            <th>Date</th>
-            <th>Attempt</th>
-            <th>Result</th>
-            <th></th>
-          </tr>
-        </thead>
+      <!-- ✅ NEW: Summary box -->
+      <div id="test-summary" class="test-summary-box"></div>
 
-        <tbody id="student-tests">
-          <tr>
-            <td colspan="5">Loading tests...</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- ✅ NEW: Toggle button -->
+      <button id="toggle-test-history" class="btn-secondary btn-small" type="button">
+        Show History
+      </button>
+
+      <!-- ✅ NEW: Wrap existing table -->
+      <div id="test-history-wrap" style="display: none;">
+
+        <table class="tests-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Attempt</th>
+              <th>Result</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody id="student-tests">
+            <tr>
+              <td colspan="5">Loading tests...</td>
+            </tr>
+          </tbody>
+        </table>
+
+      </div>
 
     </div>
-
 
     <!-- Finance -->
     <div class="dashboard-card student-finance-card">

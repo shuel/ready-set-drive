@@ -20,6 +20,210 @@ let allStudents = [];
   return { res, data };
 }*/
 
+function renderTestSummary(tests) {
+  const summaryBox = document.getElementById("test-summary");
+
+  if (!summaryBox) return;
+
+  // Split tests
+  const theoryTests = tests.filter(t => t.test_type === "theory");
+  const practicalTests = tests.filter(t => t.test_type === "practical");
+
+  // Counts
+  const theoryAttempts = theoryTests.length;
+  const practicalAttempts = practicalTests.length;
+
+  // Find pass
+  const theoryPass = theoryTests.find(t => t.result === "pass");
+  const practicalPass = practicalTests.find(t => t.result === "pass");
+
+  // ===== THEORY STATUS =====
+  let theoryStatus = "Not taken";
+
+  if (theoryAttempts > 0) {
+    if (theoryPass) {
+      theoryStatus = `Passed (${theoryAttempts} attempt${theoryAttempts > 1 ? "s" : ""})`;
+    } else {
+      theoryStatus = `Not passed (${theoryAttempts} attempt${theoryAttempts > 1 ? "s" : ""})`;
+    }
+  }
+
+  // ===== PRACTICAL STATUS =====
+  let practicalStatus = "Not taken";
+
+  if (practicalAttempts > 0) {
+    if (practicalPass) {
+      practicalStatus = `Passed (${practicalAttempts} attempt${practicalAttempts > 1 ? "s" : ""})`;
+    } else {
+      practicalStatus = `Not passed (${practicalAttempts} attempt${practicalAttempts > 1 ? "s" : ""})`;
+    }
+  }
+
+  // ===== OVERALL STATUS =====
+  let overallStatus = "Not ready";
+
+  if (theoryTests.length === 0) {
+    overallStatus = "Not ready";
+  } else if (!theoryPass) {
+    overallStatus = "In progress";
+  } else if (theoryPass && !practicalPass) {
+    overallStatus = "Ready for practical";
+  } else if (practicalPass) {
+    overallStatus = "Completed";
+  }
+
+  const statusEl = document.getElementById("testStatus");
+
+  if (statusEl) {
+    statusEl.textContent = overallStatus;
+
+    // Reset classes
+    statusEl.className = "status-badge";
+
+    // Apply correct colour
+    if (overallStatus === "Not ready") {
+      statusEl.classList.add("status-not-ready");
+    }
+    else if (overallStatus === "In progress") {
+      statusEl.classList.add("status-in-progress");
+    }
+    else if (overallStatus === "Ready for practical") {
+      statusEl.classList.add("status-ready");
+    }
+    else if (overallStatus === "Completed") {
+      statusEl.classList.add("status-completed");
+    }
+  }
+
+  // ===== RENDER =====
+  summaryBox.innerHTML = `
+    <div><strong>🧪 Theory:</strong> ${theoryStatus}</div>
+    <div><strong>🚗 Practical:</strong> ${practicalStatus}</div>
+    <div style="margin-top:8px;"><strong>Status:</strong> ${overallStatus}</div>
+  `;
+}
+
+function showMessage(text, x = null, y = null) {
+  const box = document.getElementById("app-message");
+  if (!box) return;
+
+  box.textContent = text;
+  box.classList.remove("hidden");
+
+  // If coordinates provided → position near click
+  if (x !== null && y !== null) {
+    box.style.position = "absolute";
+    box.style.left = `${x + 10}px`;
+    box.style.top = `${y + 10}px`;
+  } else {
+    // fallback (top right)
+    box.style.position = "fixed";
+    box.style.top = "20px";
+    box.style.right = "20px";
+  }
+
+  setTimeout(() => {
+    box.classList.add("hidden");
+  }, 2500);
+}
+
+function setupTestToggle() {
+  document.addEventListener("click", async (e) => {
+
+    if (!e.target.classList.contains("test-toggle")) return;
+
+    const btn = e.target;
+
+    const testId = btn.dataset.id;
+    const currentResult = btn.dataset.result;
+    const testDate = btn.dataset.date;
+
+    // ❌ Only allow pending
+    if (currentResult !== "pending") {
+      showMessage("This test has already been completed.", e.clientX, e.clientY);
+      return;
+    }
+
+    // ❌ Check if date is in future
+    const today = new Date();
+    const testDay = new Date(testDate);
+
+    // remove time part for accurate comparison
+    today.setHours(0,0,0,0);
+    testDay.setHours(0,0,0,0);
+
+    if (testDay > today) {
+      showMessage("This test has not taken place yet.", e.clientX, e.clientY);
+      return;
+    }
+
+    // ✅ Ask user for result
+    const isPass = confirm("Did the student PASS the test?\n\nOK = Pass\nCancel = Fail");
+
+    const newResult = isPass ? "pass" : "fail";
+
+    const { res } = await fetchJson(`${API_BASE}/tests/${testId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ result: newResult })
+    });
+
+    if (!res.ok) {
+      showMessage("Failed to update test", e.clientX, e.clientY);
+      return;
+    }
+
+    // reload table + summary
+    loadStudentTests(window.currentStudentId);
+
+  });
+}
+
+function setupDeleteTest() {
+  document.addEventListener("click", async (e) => {
+
+    if (!e.target.classList.contains("delete-test")) return;
+
+    const testId = e.target.dataset.id;
+
+    const confirmDelete = confirm("Delete this test?");
+    if (!confirmDelete) return;
+
+    const { res } = await fetchJson(`${API_BASE}/tests/${testId}`, {
+      method: "DELETE"
+    });
+
+    if (!res.ok) {
+      showMessage("Failed to delete test", e.clientX, e.clientY);
+      return;
+    }
+
+    // reload tests
+    loadStudentTests(window.currentStudentId);
+
+  });
+}
+
+function setupTestHistoryToggle() {
+  const toggleBtn = document.getElementById("toggle-test-history");
+  const historyWrap = document.getElementById("test-history-wrap");
+
+  // Safety check (prevents errors if not on this page)
+  if (!toggleBtn || !historyWrap) return;
+
+  toggleBtn.addEventListener("click", () => {
+    const isHidden = historyWrap.style.display === "none";
+
+    if (isHidden) {
+      historyWrap.style.display = "block";
+      toggleBtn.textContent = "Hide History";
+    } else {
+      historyWrap.style.display = "none";
+      toggleBtn.textContent = "Show History";
+    }
+  });
+}
+
 async function loadStudentTests(studentId) {
 
   const tbody = document.getElementById("student-tests");
@@ -33,6 +237,8 @@ async function loadStudentTests(studentId) {
     tbody.innerHTML = `<tr><td colspan="5">Failed to load tests</td></tr>`;
     return;
   }
+
+  renderTestSummary(data);
 
   if (!data.length) {
     tbody.innerHTML = `<tr><td colspan="5">No tests recorded</td></tr>`;
@@ -49,7 +255,15 @@ async function loadStudentTests(studentId) {
       <td>${t.test_type}</td>
       <td>${t.test_date}</td>
       <td>${t.attempt_number || ""}</td>
-      <td class="test-result ${t.result}">${t.result}</td>
+      <td>
+        <button 
+          class="test-toggle ${t.result}" 
+          data-id="${t.id}" 
+          data-result="${t.result}"
+          data-date="${t.test_date}">
+          ${t.result}
+        </button>
+      </td>
       <td>
         <button class="delete-test" data-id="${t.id}">Delete</button>
       </td>
@@ -412,7 +626,7 @@ function renderStudentCard(s, container) {
     const response = await fetch(`/students/${s.id}`, { method: "DELETE" });
 
     if (!response.ok) {
-      alert("Error deleting student");
+      showMessage("Error deleting student", e.clientX, e.clientY);
       return;
     }
 
@@ -492,6 +706,7 @@ async function loadStudentDetail(studentId) {
       clearInterval(waitForLessonsContainer);
       loadStudentLessons(studentId);
       loadStudentTests(studentId);
+      setupTestHistoryToggle();
     }
 
   }, 10);
@@ -579,7 +794,7 @@ function setupStudentForm() {
     }
 
     if (!response.ok) {
-      alert("Error saving student");
+      showMessage("Error saving student", e.clientX, e.clientY);
       return;
     }
 
@@ -717,7 +932,7 @@ function renderStudentLessons(lessons) {
       if (res.ok) {
         loadStudentDetail(currentStudentId);
       } else {
-        alert("Failed to update payment");
+        showMessage("Failed to update payment", e.clientX, e.clientY);
       }
     });
   });
@@ -739,7 +954,7 @@ function renderStudentLessons(lessons) {
       if (res.ok) {
         loadStudentDetail(currentStudentId);
       } else {
-        alert("Failed to delete lesson");
+        showMessage("Failed to delete lesson", e.clientX, e.clientY);
       }
     });
   });
@@ -864,11 +1079,11 @@ async function saveStudentNotes() {
   });
 
   if (!res.ok) {
-    alert("Failed to save notes");
+    showMessage("Failed to save notes", e.clientX, e.clientY);
     return;
   }
 
-  alert("Notes saved ✔");
+  showMessage("Notes saved ✔", e.clientX, e.clientY);
 
 }
 
@@ -901,7 +1116,7 @@ document.addEventListener("click", async (e) => {
   });
 
   if (!res.ok) {
-    alert("Failed to update lesson");
+    showMessage("Failed to update lesson", e.clientX, e.clientY);
     return;
   }
 
@@ -919,6 +1134,8 @@ window.initStudents = function () {
   loadStudents();
   setupTestModal();
   setupSaveTest();
+  setupDeleteTest();
+  setupTestToggle();
 
   // Student limit dropdown
   const limitSelect = document.getElementById("student-limit");

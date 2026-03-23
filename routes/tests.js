@@ -61,4 +61,24 @@ router.delete('/:id', async (req, res) => {
 
 });
 
+// UPDATE test result
+router.put("/:id", async (req, res) => {
+  const { id } = req.params;
+  const { result } = req.body;
+
+  const { data, error } = await supabase
+    .from("tests")
+    .update({ result })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error);
+    return res.status(400).json({ error: "Failed to update test" });
+  }
+
+  res.json(data);
+});
+
 module.exports = router;
