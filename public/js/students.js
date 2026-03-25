@@ -13,6 +13,7 @@ let studentLimit = 20;
 let studentFilter = "active";
 let studentSearch = "";
 let allStudents = [];
+let studentPriorityFilter = "all";
 
 /*async function fetchJson(url, options = {}) {
   const res = await fetch(url, options);
@@ -101,6 +102,26 @@ function renderTestSummary(tests) {
     <div><strong>🚗 Practical:</strong> ${practicalStatus}</div>
     <div style="margin-top:8px;"><strong>Status:</strong> ${overallStatus}</div>
   `;
+}
+
+function getStudentPriorityType(tests = []) {
+
+  const theoryTests = tests.filter(t => t.test_type === "theory");
+  const practicalTests = tests.filter(t => t.test_type === "practical");
+
+  const theoryAttempts = theoryTests.length;
+  const practicalAttempts = practicalTests.length;
+
+  const theoryPassed = theoryTests.some(t => t.result === "pass");
+  const practicalPassed = practicalTests.some(t => t.result === "pass");
+
+  if (practicalPassed) return "completed";
+
+  if (theoryPassed) return "ready";
+
+  if (theoryAttempts >= 3) return "struggling";
+
+  return "needs-theory";
 }
 
 function showMessage(text, x = null, y = null) {
@@ -645,7 +666,17 @@ function renderStudentCard(s, container) {
 
   const testStatus = getStudentTestDashboardStatus(s.tests || []);
   const attempts = getTestAttemptsSummary(s.tests || []);
-  const isStruggling = attempts.theory >= 3 || attempts.practical >= 2;
+  const theoryPassed = (s.tests || []).some(
+    t => t.test_type === "theory" && t.result === "pass"
+  );
+
+  const practicalPassed = (s.tests || []).some(
+    t => t.test_type === "practical" && t.result === "pass"
+  );
+
+  const isStruggling =
+    (!theoryPassed && attempts.theory >= 3) ||
+    (!practicalPassed && attempts.practical >= 2);
 
   console.log("Struggling:", s.first_name, isStruggling);
 
@@ -761,6 +792,12 @@ function getFilteredStudents() {
 
     filtered = filtered.filter(s =>
       `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
+    );
+  }
+
+  if (studentPriorityFilter !== "all") {
+    filtered = filtered.filter(s =>
+      getStudentPriorityType(s.tests || []) === studentPriorityFilter
     );
   }
 
@@ -1315,6 +1352,27 @@ window.initStudents = function () {
     closeBtn.addEventListener("click", closeLessonModal);
     closeBtn.dataset.bound = "true";
   }
+
+  document.querySelectorAll(".priority-btn").forEach(btn => {
+
+    if (btn.dataset.bound) return; // ✅ prevent duplicate binding
+
+    btn.addEventListener("click", () => {
+
+      document.querySelectorAll(".priority-btn")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      studentPriorityFilter = btn.dataset.priority;
+
+      renderStudents();
+
+    });
+
+    btn.dataset.bound = "true"; // ✅ mark as bound
+
+  });
 
 }
 

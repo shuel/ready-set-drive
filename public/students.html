@@ -42,34 +42,44 @@
 
 <div class="student-controls">
 
-  <div class="student-filters">
-    <button class="filter-btn active" data-filter="active">Active</button>
-    <button class="filter-btn" data-filter="inactive">Inactive</button>
-    <button class="filter-btn" data-filter="all">All</button>
-  </div>
+  <!-- ✅ TOP ROW -->
+  <div class="student-top-row">
 
-  <div class="student-search">
-    <input type="text" id="student-search" placeholder="Search students...">
-  </div>
-
-  <div class="student-toolbar">
-
-    <div class="student-limit-control">
-      Show
-      <select id="student-limit">
-        <option value="10">10</option>
-        <option value="20" selected>20</option>
-        <option value="50">50</option>
-        <option value="all">All</option>
-      </select>
-      students
+    <div class="student-filters">
+      <button class="filter-btn active" data-filter="active">Active</button>
+      <button class="filter-btn" data-filter="inactive">Inactive</button>
+      <button class="filter-btn" data-filter="all">All</button>
     </div>
-    
-    <div id="student-count" class="student-count"></div>
-    
+
+    <div class="student-search">
+      <input type="text" id="student-search" placeholder="Search students...">
+    </div>
+
+    <div class="student-toolbar">
+      <div class="student-limit-control">
+        Show
+        <select id="student-limit">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="50">50</option>
+          <option value="all">All</option>
+        </select>
+        students
+      </div>
+
+      <div id="student-count" class="student-count"></div>
+    </div>
+
   </div>
 
-  <!--div id="students-list" class="students-grid"></div-->
+  <!-- ✅ SECOND ROW -->
+  <div class="priority-filters">
+    <button class="priority-btn active" data-priority="all">All</button>
+    <button class="priority-btn" data-priority="needs-theory">⚠️ Needs Theory</button>
+    <button class="priority-btn" data-priority="struggling">🚨 Struggling</button>
+    <button class="priority-btn" data-priority="ready">🟢 Ready</button>
+    <button class="priority-btn" data-priority="completed">🏁 Completed</button>
+  </div>
 
 </div>
 
