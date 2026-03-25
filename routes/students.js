@@ -67,14 +67,35 @@ router.get('/', async (req, res) => {
         end_time,
         price,
         paid
+      ),
+      tests:tests!tests_student_id_fkey (
+        id,
+        test_type,
+        result,
+        test_date
       )
     `)
     .order('created_at', { ascending: false });
+
+  // =======================
+  // Fetch all tests
+  const { data: allTests, error: testsError } = await supabase
+    .from('tests')
+    .select('*');
+
+  if (testsError) {
+    return res.status(500).json({ error: testsError.message });
+  }
 
   if (error) return res.status(500).json({ error: error.message });
 
   // Calculate lesson stats
   const studentsWithStats = data.map(student => {
+
+    // Get this student's tests
+    const studentTests = allTests.filter(
+      t => t.student_id === student.id
+    );
 
     const lessons = student.lessons || [];
 
@@ -126,6 +147,7 @@ router.get('/', async (req, res) => {
     return {
       ...student,
       lessons: undefined, // remove lesson array
+      tests: studentTests, // ✅ keep tests for dashboard
       lessons_completed,
       hours_driven: Number(hours_driven.toFixed(1)),
       next_lesson: nextLesson,

@@ -1188,3 +1188,26 @@ tr:nth-child(even) { background: #fafafa; }
   background: #cce5ff;
   color: #004085;
 }
+
+.student-test-status {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.highlight-ready {
+  border: 1px solid #16a34a;
+  box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.15);
+}
+
+.student-test-attempts {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.highlight-struggling {
+  border: 2px solid #dc2626;
+  /*box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.15);*/
+}

@@ -127,6 +127,40 @@ function showMessage(text, x = null, y = null) {
   }, 2500);
 }
 
+// =======================
+// Get sort priority based on test status
+function getTestStatusPriority(tests = []) {
+  const theoryPassed = tests.some(
+    t => t.test_type === "theory" && t.result === "pass"
+  );
+
+  const practicalPassed = tests.some(
+    t => t.test_type === "practical" && t.result === "pass"
+  );
+
+  if (practicalPassed) return 3;
+  if (theoryPassed) return 2;
+  return 1;
+}
+
+// =======================
+// Get test attempts summary
+function getTestAttemptsSummary(tests = []) {
+
+  const theoryAttempts = tests.filter(
+    t => t.test_type === "theory"
+  ).length;
+
+  const practicalAttempts = tests.filter(
+    t => t.test_type === "practical"
+  ).length;
+
+  return {
+    theory: theoryAttempts,
+    practical: practicalAttempts
+  };
+}
+
 function setupTestToggle() {
   document.addEventListener("click", async (e) => {
 
@@ -177,6 +211,47 @@ function setupTestToggle() {
     loadStudentTests(window.currentStudentId);
 
   });
+}
+
+// =======================
+// Get dashboard test status
+function getStudentTestDashboardStatus(tests = []) {
+
+  const theoryPassed = tests.some(
+    t => t.test_type === "theory" && t.result === "pass"
+  );
+
+  const practicalPassed = tests.some(
+    t => t.test_type === "practical" && t.result === "pass"
+  );
+
+  const theoryAttempts = tests.filter(t => t.test_type === "theory").length;
+
+  if (practicalPassed) {
+    return {
+      label: "🏁 Completed",
+      className: "test-status-complete"
+    };
+  }
+
+  if (theoryPassed) {
+    return {
+      label: "🟢 Ready for practical",
+      className: "test-status-ready"
+    };
+  }
+
+  if (theoryAttempts >= 3) {
+    return {
+      label: "🚨 Struggling with theory",
+      className: "test-status-struggling"
+    };
+  }
+
+  return {
+    label: "⚠️ Needs theory",
+    className: "test-status-theory"
+  };
 }
 
 function setupDeleteTest() {
@@ -301,9 +376,11 @@ function setupTestModal(){
 
 function setupSaveTest(){
 
-  document.addEventListener("click", async (e) => {
+  const saveBtn = document.getElementById("saveTestBtn");
 
-    if(e.target.id !== "saveTestBtn") return;
+  if (!saveBtn) return;
+
+  saveBtn.onclick = async () => {
 
     const test_type = document.getElementById("testType").value;
     const test_date = document.getElementById("testDate").value;
@@ -333,7 +410,7 @@ function setupSaveTest(){
       loadStudentTests(student_id);
     }
 
-  });
+  };
 
 }
 
@@ -529,6 +606,21 @@ function renderStudents() {
 
   });
 
+  // =======================
+  // Sort inside each group by test status
+
+  todayStudents.sort((a, b) =>
+    getTestStatusPriority(a.tests || []) - getTestStatusPriority(b.tests || [])
+  );
+
+  upcomingStudents.sort((a, b) =>
+    getTestStatusPriority(a.tests || []) - getTestStatusPriority(b.tests || [])
+  );
+
+  noLessonStudents.sort((a, b) =>
+    getTestStatusPriority(a.tests || []) - getTestStatusPriority(b.tests || [])
+  );
+
   renderSection("Today", todayStudents);
   renderSection("Upcoming Lessons", upcomingStudents);
   renderSection("No Lesson Booked", noLessonStudents);
@@ -539,7 +631,7 @@ function renderStudents() {
 
 function renderStudentCard(s, container) {
 
-  // Student Readiness
+    // Student Readiness
   let readiness = "beginner";
   let readinessLabel = "Beginner";
 
@@ -551,8 +643,19 @@ function renderStudentCard(s, container) {
     readinessLabel = "Mid Progress";
   }
 
+  const testStatus = getStudentTestDashboardStatus(s.tests || []);
+  const attempts = getTestAttemptsSummary(s.tests || []);
+  const isStruggling = attempts.theory >= 3 || attempts.practical >= 2;
+
+  console.log("Struggling:", s.first_name, isStruggling);
+
   const card = document.createElement("div");
-  card.className = `student-card readiness-${readiness}`;
+  card.className = `
+    student-card 
+    readiness-${readiness}
+    ${testStatus.className === 'test-status-ready' ? 'highlight-ready' : ''}
+    ${isStruggling ? 'highlight-struggling' : ''}
+  `;
 
   card.innerHTML = `
     <div class="student-header">
@@ -577,6 +680,14 @@ function renderStudentCard(s, container) {
 
     <div class="student-readiness">
       ${readinessLabel}
+    </div>
+
+    <div class="student-test-status ${testStatus.className}">
+      ${testStatus.label}
+    </div>
+
+    <div class="student-test-attempts">
+      🎯 Theory: ${attempts.theory} | 🚗 Practical: ${attempts.practical}
     </div>
 
     <div class="student-next-lesson">
@@ -707,6 +818,7 @@ async function loadStudentDetail(studentId) {
       loadStudentLessons(studentId);
       loadStudentTests(studentId);
       setupTestHistoryToggle();
+      setupSaveTest();
     }
 
   }, 10);
