@@ -51,6 +51,9 @@ function loadSection(section, params = {}) {
         // pass optional params (e.g. student_id) into lessons init
         initLessons(params);
       }
+
+      if (section === "accounts") initAccounts();
+      
     });
 }
 
