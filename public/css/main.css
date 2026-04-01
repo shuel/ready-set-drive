@@ -1305,3 +1305,32 @@ tr:nth-child(even) { background: #fafafa; }
   color: #e53935;
   font-weight: 600;
 }
+
+.section-title {
+  margin-top: 30px;
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.student-group {
+  margin-bottom: 25px;
+}
+
+.student-group h3 {
+  margin-bottom: 10px;
+}
+
+.lesson-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+.accounts-container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 0 20px;
+}

@@ -1,7 +1,5 @@
 async function openCreateLessonModal() {
 
-  console.log("MODAL FILE RUNNING");
-
   // Fetch selected student's hourly rate for live price calculation
   if (selectedStudentId) {
     const { res, data } = await fetchJson(`${API}/students/${selectedStudentId}`);

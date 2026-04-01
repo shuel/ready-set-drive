@@ -678,8 +678,6 @@ function renderStudentCard(s, container) {
     (!theoryPassed && attempts.theory >= 3) ||
     (!practicalPassed && attempts.practical >= 2);
 
-  console.log("Struggling:", s.first_name, isStruggling);
-
   const card = document.createElement("div");
   card.className = `
     student-card 

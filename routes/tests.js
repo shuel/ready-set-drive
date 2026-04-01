@@ -24,8 +24,6 @@ router.get('/student/:id', async (req, res) => {
 // CREATE test
 router.post('/', async (req, res) => {
 
-  console.log("TEST CREATED:", req.body);
-
   const { student_id, test_type, test_date, result, attempt_number, notes } = req.body;
 
   const { data, error } = await supabase

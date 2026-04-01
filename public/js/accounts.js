@@ -1,6 +1,16 @@
 // Accounts logic (v1 - summary only)
 
 // --- Helper fumctions here ---//
+function getLessonDuration(start, end) {
+  if (!start || !end) return "";
+
+  const s = new Date(`1970-01-01T${start}`);
+  const e = new Date(`1970-01-01T${end}`);
+
+  const mins = (e - s) / 60000;
+  return `${mins / 60}h`;
+}
+
 function formatCurrency(value) {
   return `£${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 }
@@ -42,6 +52,7 @@ async function initAccounts() {
   let totalRevenue = 0;
   let totalPaid = 0;
   let weeklyRevenue = 0;
+  let weeklyPaid = 0;
 
   const today = new Date();
 
@@ -52,6 +63,21 @@ async function initAccounts() {
   startOfWeek.setDate(diff);
   startOfWeek.setHours(0, 0, 0, 0);
 
+  // End of week (Sunday)
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+  // Format range
+  const formatDate = d => d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short"
+  });
+
+  const weekRange = `${formatDate(startOfWeek)} – ${formatDate(endOfWeek)}`;
+
+  // Render
+  document.getElementById("weeklyRange").textContent = weekRange;
+
   const weeklyLessons = lessons.filter(l => {
     if (!l.lesson_date) return false;
 
@@ -61,28 +87,36 @@ async function initAccounts() {
 
   lessons.forEach(l => {
 
-    const price = l.price || 0;
+    const price = Number(l.price) || 0;
+
+    const isPaid = (l.paid === "Yes" || l.paid === true);
 
     // Total revenue
     totalRevenue += price;
 
-    // Paid
-    if (l.paid === "Yes" || l.paid === true) {
+    // Total paid
+    if (isPaid) {
       totalPaid += price;
     }
 
-    // Weekly revenue (based on lesson_date)
+    // Weekly revenue
     if (l.lesson_date) {
       const lessonDate = new Date(l.lesson_date);
 
       if (lessonDate >= startOfWeek) {
         weeklyRevenue += price;
+
+        // NEW: weekly paid
+        if (isPaid) {
+          weeklyPaid += price;
+        }
       }
     }
 
   });
 
   const totalOutstanding = totalRevenue - totalPaid;
+  const weeklyOutstanding = weeklyRevenue - weeklyPaid;
 
   weeklyLessons.sort((a, b) => {
     return new Date(a.lesson_date + "T" + a.start_time) - 
@@ -90,21 +124,18 @@ async function initAccounts() {
   });
 
   // --- Render ---
-  document.getElementById("totalRevenue").textContent = formatCurrency(totalRevenue);
-  document.getElementById("totalRevenue").textContent = formatCurrency(totalRevenue);
-  document.getElementById("totalPaid").textContent = formatCurrency(totalPaid);
-  document.getElementById("totalOutstanding").textContent = formatCurrency(totalOutstanding);
   document.getElementById("weeklyRevenue").textContent = formatCurrency(weeklyRevenue);
+  document.getElementById("weeklyPaid").textContent = formatCurrency(weeklyPaid);
+  document.getElementById("weeklyOutstanding").textContent = formatCurrency(weeklyOutstanding);
 
-  const outstandingEl = document.getElementById("totalOutstanding");
+  const weeklyOutstandingEl = document.getElementById("weeklyOutstanding");
 
-  // reset classes first (important if it re-renders)
-  outstandingEl.classList.remove("text-red", "text-green");
+  weeklyOutstandingEl.classList.remove("text-red", "text-green");
 
-  if (totalOutstanding > 0) {
-    outstandingEl.classList.add("text-red");
+  if (weeklyOutstanding > 0) {
+    weeklyOutstandingEl.classList.add("text-red");
   } else {
-    outstandingEl.classList.add("text-green");
+    weeklyOutstandingEl.classList.add("text-green");
   }
 
   const container = document.getElementById("weeklyLessons");
@@ -114,26 +145,52 @@ async function initAccounts() {
     return;
   }
 
-  container.innerHTML = weeklyLessons.map(l => {
+  // Group by student
+  const lessonsByStudent = {};
 
-    const price = l.price || 0;
-    const paid = (l.paid === "Yes" || l.paid === true);
+  weeklyLessons.forEach(l => {
+    const name = l.student_name || "Student";
+
+    if (!lessonsByStudent[name]) {
+      lessonsByStudent[name] = [];
+    }
+
+    lessonsByStudent[name].push(l);
+  });
+
+  container.innerHTML = Object.entries(lessonsByStudent).map(([student, lessons]) => {
+
+    const rows = lessons.map(l => {
+
+      const price = Number(l.price) || 0;
+      const paid = (l.paid === "Yes" || l.paid === true);
+
+      const duration = getLessonDuration(l.start_time, l.end_time);
+
+      return `
+        <div class="lesson-row">
+          <span>${formatLessonDate(l.lesson_date, l.start_time)}</span>
+          <span>${duration}</span>
+          <span>${formatCurrency(price)}</span>
+          <span class="${paid ? "paid" : "unpaid"}">
+            ${paid ? "Paid" : "Unpaid"}
+          </span>
+        </div>
+      `;
+
+    }).join("");
 
     return `
-      <div class="lesson-item">
-        <div class="lesson-left">
-          <strong>${l.student_name || "Student"}</strong>
-          <span>${formatLessonDate(l.lesson_date, l.start_time)}</span>
-        </div>
-
-        <div class="lesson-right">
-          <div>£${price.toFixed(2)}</div>
-          <div class="${paid ? "paid" : "unpaid"}">
-            ${paid ? "Paid" : "Unpaid"}
-          </div>
+      <div class="student-group">
+        <h3>${student}</h3>
+        <div class="lesson-rows">
+          ${rows}
         </div>
       </div>
     `;
 
   }).join("");
+
 }
+
+

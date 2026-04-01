@@ -1,5 +1,3 @@
-console.log("lessons.js loaded");
-
 const API = window.API_BASE || "http://localhost:5000";
 
 const DAY_START_MIN = 9 * 60;
@@ -336,10 +334,6 @@ function renderBlockedTimes(blocks) {
 
 function openLessonModal(l) {
 
-  //debug line to be removed
-  console.log("Paid from DB:", l.paid, typeof l.paid);
-  console.log("OPEN EDIT MODAL", l);
-
   // Store hourly rate on modal for live calculations
   window.currentHourlyRate = l.students?.hourly_rate || 0;
   
@@ -509,7 +503,10 @@ async function openCreateLessonModal() {
 }
 
 function openBlockModal() {
-  document.getElementById("lessonFields").style.display = "none";
+
+  const lessonFields = document.getElementById("lessonFields");
+  lessonFields.style.display = "none";
+    
   const blockFields = document.getElementById("blockFields");
   blockFields.style.display = "block";
 
@@ -517,7 +514,7 @@ function openBlockModal() {
   isBlockMode = true;
   selectedLessonId = null;
 
-  document.getElementById("lessonModalTitle").textContent = "Create Blocked Time";
+  document.getElementById("lessonModalTitle").textContent = "Blocked Time";
 
   const studentSearch = document.getElementById("lessonStudentSearch");
   const studentResults = document.getElementById("lessonStudentResults");
@@ -552,6 +549,8 @@ function openBlockModal() {
   const modal = getLessonModal();
   if (!modal) return;
   setupStudentSearch();
+
+  modal.classList.remove("hidden");
 
 }
 
