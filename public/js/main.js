@@ -1,31 +1,88 @@
-window.API_BASE = "http://localhost:5000";
+console.log("MAIN JS LOADED");
 
-// global variable to store all students
-window.allStudents = [];
+// ========================================
+// 🔐 AUTH CHECK
+// ========================================
+async function requireAuth() {
+  console.log("Checking auth...");
 
-// ================================
-// Shared API helper
-// ================================
+  const { data } = await supabase.auth.getSession();
 
-window.toggleStudentSelect = function(show) {
-  const wrap = document.getElementById("studentSelectWrap");
-  if (!wrap) return;
+  console.log("Session:", data);
 
-  wrap.style.display = show ? "block" : "none";
-};
-
-async function loadAllStudents() {
-
-  const { res, data } = await fetchJson(`${API_BASE}/students`);
-
-  if(res.ok){
-    window.allStudents = data;
+  if (!data.session) {
+    console.log("❌ No session, redirecting");
+    window.location.href = "/login.html";
+    return false;
   }
 
+  console.log("✅ Auth OK");
+  return true;
 }
 
-function getLessonModal() {
-  return document.getElementById("lessonModalOverlay");
+// ========================================
+// 🚀 APP START (ONLY ENTRY POINT)
+// ========================================
+window.addEventListener("DOMContentLoaded", () => {
+  startApp();
+});
+
+async function startApp() {
+
+  console.log("START APP");
+
+  const isAuthed = await requireAuth();
+  if (!isAuthed) return;
+
+  await loadAllStudents();
+
+  console.log("STUDENTS LOADED");
+
+  // ✅ Attach logout (button is static in index.html)
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      console.log("Logout clicked");
+      await supabase.auth.signOut();
+      window.location.href = "/login.html";
+    });
+  }
+
+  // ✅ Attach nav buttons
+  document.querySelectorAll(".nav-links button").forEach(btn => {
+    btn.addEventListener("click", () => {
+
+      document.querySelectorAll(".nav-links button")
+        .forEach(b => b.classList.remove("active"));
+
+      btn.classList.add("active");
+
+      loadSection(btn.dataset.section);
+    });
+  });
+
+  // ✅ Load default page
+  loadSection("dashboard");
+
+  const firstBtn = document.querySelector('.nav-links button[data-section="dashboard"]');
+  if (firstBtn) firstBtn.classList.add('active');
+
+  console.log("DASHBOARD LOADED");
+}
+
+// ========================================
+// 🌐 GLOBAL CONFIG
+// ========================================
+window.API_BASE = "http://localhost:5000";
+window.allStudents = [];
+
+// ========================================
+// 🔧 HELPERS
+// ========================================
+async function loadAllStudents() {
+  const { res, data } = await fetchJson(`${API_BASE}/students`);
+  if (res.ok) window.allStudents = data;
 }
 
 async function fetchJson(url, options = {}) {
@@ -34,10 +91,20 @@ async function fetchJson(url, options = {}) {
   return { res, data };
 }
 
+// ========================================
+// 📦 LOAD SECTION
+// ========================================
 function loadSection(section, params = {}) {
+
+  if (!section) {
+    console.error("❌ loadSection called without section");
+    return;
+  }
+
   fetch(`${section}.html`)
     .then(res => res.text())
     .then(html => {
+
       document.getElementById('content').innerHTML = html;
 
       if (section === 'dashboard') {
@@ -48,77 +115,9 @@ function loadSection(section, params = {}) {
       if (section === 'students') initStudents();
 
       if (section === 'weekly') {
-        // pass optional params (e.g. student_id) into lessons init
         initLessons(params);
       }
 
       if (section === "accounts") initAccounts();
-      
     });
 }
-
-async function initDashboard() {
-
-  // Fetch students
-  const { data: students } = await fetchJson(`${API_BASE}/students`);
-  const activeStudents = students?.filter(s => s.active).length || 0;
-
-  // Fetch this week's lessons
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(today.getDate() - today.getDay() + 1); // Monday
-  const end = new Date(start);
-  end.setDate(start.getDate() + 7);
-
-  const startStr = start.toISOString().split("T")[0];
-  const endStr = end.toISOString().split("T")[0];
-
-  const { data: lessons } = await fetchJson(
-    `${API_BASE}/lessons?start=${startStr}&end=${endStr}`
-  );
-
-  const todayStr = today.toISOString().split("T")[0];
-
-  const todayLessons = lessons?.filter(l => l.lesson_date === todayStr).length || 0;
-  const weekLessons = lessons?.length || 0;
-
-  const revenue = lessons
-    ?.filter(l => l.paid)
-    .reduce((sum, l) => sum + Number(l.price || 0), 0) || 0;
-
-  document.getElementById("dash-today").textContent = todayLessons;
-  document.getElementById("dash-week").textContent = weekLessons;
-  document.getElementById("dash-students").textContent = activeStudents;
-  document.getElementById("dash-revenue").textContent = `£${revenue.toFixed(2)}`;
-
-  lucide.createIcons();
-}
-
-
-// ===== Navigation Handling =====
-document.querySelectorAll(".nav-links button").forEach(btn => {
-
-  btn.addEventListener("click", () => {
-
-    // Remove active state from all
-    document.querySelectorAll(".nav-links button")
-      .forEach(b => b.classList.remove("active"));
-
-    // Add active to clicked
-    btn.classList.add("active");
-
-    // Load the section
-    loadSection(btn.dataset.section);
-
-  });
-
-});
-
-window.addEventListener('DOMContentLoaded', () => {
-  loadAllStudents();
-  loadSection('students');
-  
-  // Set Students button as active on initial load
-  const firstBtn = document.querySelector('.nav-links button[data-section="students"]');
-  if (firstBtn) firstBtn.classList.add('active');
-});
