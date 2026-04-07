@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
+const requireAuth = require('../middleware/requireAuth');
 
 // =======================
 // GET student financial summary
-router.get('/:id/finance', async (req, res) => {
+router.get('/:id/finance', requireAuth, async (req, res) => {
 
   const { id } = req.params;
 
@@ -35,7 +36,7 @@ router.get('/:id/finance', async (req, res) => {
 
 // =======================
 // GET single student
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, async (req, res) => {
 
   const { id } = req.params;
 
@@ -54,7 +55,7 @@ router.get('/:id', async (req, res) => {
 
 
 // GET all students with lesson stats
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
 
   const { data, error } = await supabase
     .from('students')
@@ -163,7 +164,7 @@ router.get('/', async (req, res) => {
 
 
 // POST create a new student
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const {
     first_name,
     last_name,
@@ -219,7 +220,7 @@ router.post('/', async (req, res) => {
 });
 
 // UPDATE student
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const {
@@ -268,7 +269,7 @@ router.put('/:id', async (req, res) => {
 });
 
 //Deleteing a student
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const { error } = await supabase
@@ -284,7 +285,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Update instructor notes
-router.put('/:id/notes', async (req, res) => {
+router.put('/:id/notes', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { notes } = req.body;
 

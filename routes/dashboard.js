@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
+const requireAuth = require('../middleware/requireAuth');
 
-router.get('/stats', async (req, res) => {
+router.get('/stats', requireAuth, async (req, res) => {
 
   const today = new Date().toISOString().split('T')[0];
 

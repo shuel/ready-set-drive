@@ -15,12 +15,6 @@ let studentSearch = "";
 let allStudents = [];
 let studentPriorityFilter = "all";
 
-/*async function fetchJson(url, options = {}) {
-  const res = await fetch(url, options);
-  const data = await res.json().catch(() => ({}));
-  return { res, data };
-}*/
-
 function renderTestSummary(tests) {
   const summaryBox = document.getElementById("test-summary");
 
@@ -763,9 +757,11 @@ function renderStudentCard(s, container) {
     const confirmDelete = confirm("Are you sure you want to delete this student?");
     if (!confirmDelete) return;
 
-    const response = await fetch(`/students/${s.id}`, { method: "DELETE" });
+    const { res } = await fetchJson(`${API_BASE}/students/${s.id}`, {
+      method: "DELETE"
+    });
 
-    if (!response.ok) {
+    if (!res.ok) {
       showMessage("Error deleting student", e.clientX, e.clientY);
       return;
     }
@@ -810,9 +806,7 @@ async function loadStudentDetail(studentId) {
   currentStudentId = studentId;
 
   // Request student data from API
-  const res = await fetch(`${API_BASE}/students/${studentId}`);
-
-  const student = await res.json();
+  const { data: student } = await fetchJson(`${API_BASE}/students/${studentId}`);
 
   // Display student name at the top of the page
   document.getElementById("student-name").textContent =
@@ -830,9 +824,8 @@ async function loadStudentDetail(studentId) {
   ========================================= */
 
   // Request finance data
-  const financeRes = await fetch(`${API_BASE}/students/${studentId}/finance`);
-  const finance = await financeRes.json();
-
+  const { data: finance } = await fetchJson(`${API_BASE}/students/${studentId}/finance`);
+  
   // Display totals
   document.getElementById("student-total").textContent =
     `£${Number(finance.total || 0).toFixed(2)}`;
@@ -918,29 +911,30 @@ function setupStudentForm() {
     const submitBtn = document.getElementById("student-submit-btn");
     if (submitBtn) submitBtn.textContent = "Update Student";
 
-    let response;
+    let res;
 
     if (editId) {
       // UPDATE
-      response = await fetch(`/students/${editId}`, {
+      ( {res} = await fetchJson(`${API_BASE}/students/${editId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
+      }));
 
       delete form.dataset.editId;
-      const submitBtn = document.getElementById("student-submit-btn");
+
       if (submitBtn) submitBtn.textContent = "Add Student";
+
     } else {
       // CREATE
-      response = await fetch("/students", {
+      (res = await fetchJson(`${API_BASE}/students`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
+      }));
     }
 
-    if (!response.ok) {
+    if (!res.ok) {
       showMessage("Error saving student", e.clientX, e.clientY);
       return;
     }
@@ -1068,7 +1062,7 @@ function renderStudentLessons(lessons) {
     btn.addEventListener("click", async () => {
       const lessonId = btn.dataset.id;
 
-      const res = await fetch(`${API_BASE}/lessons/${lessonId}`, {
+      const {res} = await fetchJson(`${API_BASE}/lessons/${lessonId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json"
@@ -1094,7 +1088,7 @@ function renderStudentLessons(lessons) {
 
       const lessonId = btn.dataset.id;
 
-      const res = await fetch(`${API_BASE}/lessons/${lessonId}`, {
+      const {res} = await fetchJson(`${API_BASE}/lessons/${lessonId}`, {
         method: "DELETE"
       });
 
@@ -1134,9 +1128,8 @@ function renderStudentLessons(lessons) {
 // Fetch and display lesson history for a student
 async function loadStudentLessons(studentId) {
 
-  const res = await fetch(`${API_BASE}/lessons?student_id=${studentId}`);
-  const lessons = await res.json();
-
+  const {data: lessons} = await fetchJson(`${API_BASE}/lessons?student_id=${studentId}`);
+  
   // Adding new code here
   let lessonCount = 0;
   let totalMinutes = 0;
@@ -1219,7 +1212,7 @@ async function saveStudentNotes() {
 
   const notes = document.getElementById('student-notes').value;
 
-  const res = await fetch(`${API_BASE}/students/${window.currentStudentId}/notes`, {
+  const {res} = await fetchJson(`${API_BASE}/students/${window.currentStudentId}/notes`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ notes })
@@ -1249,7 +1242,7 @@ document.addEventListener("click", async (e) => {
   const end_time = document.getElementById("edit-end-time").value;
   const notes = document.getElementById("edit-notes").value;
 
-  const res = await fetch(`${API_BASE}/lessons/${window.currentLessonEdit}`, {
+  const {res} = await fetchJson(`${API_BASE}/lessons/${window.currentLessonEdit}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"

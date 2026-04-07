@@ -85,10 +85,31 @@ async function loadAllStudents() {
   if (res.ok) window.allStudents = data;
 }
 
-async function fetchJson(url, options = {}) {
+/*async function fetchJson(url, options = {}) {
   const res = await fetch(url, options);
   const data = await res.json().catch(() => ({}));
   return { res, data };
+}*/
+async function fetchJson(url, options = {}) {
+
+  // Get current session
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+
+  // Add Authorization header
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`
+  };
+
+  const res = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  const dataRes = await res.json().catch(() => ({}));
+
+  return { res, data: dataRes };
 }
 
 // ========================================
@@ -108,7 +129,6 @@ function loadSection(section, params = {}) {
       document.getElementById('content').innerHTML = html;
 
       if (section === 'dashboard') {
-        initDashboard();
         loadDashboardStats();
       }
 

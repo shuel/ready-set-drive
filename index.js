@@ -1,6 +1,7 @@
+require('dotenv').config();
+console.log("ENV URL:", process.env.SUPABASE_URL);
 const path = require('path');
 
-require('dotenv').config();
 console.log('Index.js loaded');
 
 const supabase = require('./supabaseClient');
