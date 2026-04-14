@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
-
+const requireAuth = require('../middleware/requireAuth');
 
 // GET tests for a student
-router.get('/student/:id', async (req, res) => {
+router.get('/student/:id', requireAuth, async (req, res) => {
 
   const { id } = req.params;
 
@@ -22,7 +22,7 @@ router.get('/student/:id', async (req, res) => {
 
 
 // CREATE test
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
 
   const { student_id, test_type, test_date, result, attempt_number, notes } = req.body;
 
@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
 
 
 // DELETE test
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
 
   const { id } = req.params;
 
@@ -62,7 +62,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // UPDATE test result
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAuth, async (req, res) => {
   const { id } = req.params;
   const { result } = req.body;
 

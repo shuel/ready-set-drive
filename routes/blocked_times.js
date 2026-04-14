@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
+const requireAuth = require('../middleware/requireAuth');
 
 // GET /blocked_times?start=YYYY-MM-DD&end=YYYY-MM-DD
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const { start, end } = req.query;
 
   if (!start || !end) {
@@ -23,7 +24,7 @@ router.get('/', async (req, res) => {
 });
 
 // CREATE blocked time
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   const { block_date, start_time, end_time, reason } = req.body;
 
   if (!block_date || !start_time || !end_time) {

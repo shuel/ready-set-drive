@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
+const requireAuth = require('../middleware/requireAuth');
 
 // =======================
 // Helpers
@@ -89,7 +90,7 @@ async function overlapsBlockedTime(lesson_date, start_time, end_time) {
 //  - /lessons?student_id=UUID
 //  - /lessons?lesson_date=YYYY-MM-DD
 //  - /lessons?start=YYYY-MM-DD&end=YYYY-MM-DD  (weekly calendar)
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const { student_id, lesson_date, start, end } = req.query;
 
   let query = supabase
@@ -120,7 +121,7 @@ router.get('/', async (req, res) => {
 
 // =======================
 // CREATE lesson
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
 
   const { 
     student_id, 
@@ -216,7 +217,7 @@ router.post('/', async (req, res) => {
 
 // =======================
 // UPDATE lesson
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const {
@@ -330,7 +331,7 @@ router.put('/:id', async (req, res) => {
 
 // =======================
 // DELETE lesson
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   const { error } = await supabase

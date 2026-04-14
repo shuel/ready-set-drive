@@ -58,6 +58,10 @@ async function startApp() {
 
       btn.classList.add("active");
 
+      // 🔥 CLEAR student context when going to general calendar
+      if (btn.dataset.section === "weekly") {
+        window.currentStudentId = null;
+      }
       loadSection(btn.dataset.section);
     });
   });

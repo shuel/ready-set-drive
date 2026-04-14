@@ -10,6 +10,19 @@ let selectedLessonId = null;
 let isCreateMode = false;
 let isBlockMode = false;
 
+// ================================
+// GLOBAL LESSON CLICK HANDLERS
+// ================================
+document.addEventListener("click", (e) => {
+
+  if (e.target.closest("#addLessonBtn")) window.openCreateLessonModal();
+  if (e.target.closest("#addBlockBtn")) window.openBlockModal();
+  if (e.target.closest("#saveLessonBtn")) window.saveLesson();
+  if (e.target.closest("#deleteLessonBtn")) window.deleteLesson();
+  if (e.target.closest("#lessonModalClose")) window.closeLessonModal();
+  if (e.target.id === "lessonModalOverlay") window.closeLessonModal();
+});
+
 /* ---------------- HELPERS ---------------- */
 
 // Convert +447XXXXXXXXX → 447XXXXXXXXX for WhatsApp
@@ -106,17 +119,6 @@ async function initLessons(params = {}) {
   }
 
   setupWeekNav();
-
-  document.getElementById("addLessonBtn").addEventListener("click", openCreateLessonModal);
-  document.getElementById("addBlockBtn").addEventListener("click", openBlockModal);
-  document.getElementById("saveLessonBtn").addEventListener("click", saveLesson);
-  document.getElementById("deleteLessonBtn").addEventListener("click", deleteLesson);
-  document.getElementById("lessonModalClose").addEventListener("click", closeLessonModal);
-
-  document.getElementById("lessonModalOverlay").addEventListener("click", (e) => {
-    if (e.target.id === "lessonModalOverlay") closeLessonModal();
-  });
-
   loadWeek(currentWeekStart);
   setupStudentSearch();
 }
@@ -294,11 +296,16 @@ function renderLessons(lessons) {
       payBtn.addEventListener('click', async (e) => {
         e.stopPropagation(); // Prevent opening lesson modal
 
-        await fetch(`${API}/lessons/${l.id}`, {
+        const { res } = await fetchJson(`${API_BASE}/lessons/${l.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paid: true })
         });
+
+        if ( !res.ok ) {
+          alert("Failed to update lesson");
+          return;
+        }
 
         // Reload week to refresh UI + revenue
         loadWeek(currentWeekStart);
@@ -385,7 +392,7 @@ function openLessonModal(l) {
     paidSelect.value = l.paid ? "Yes" : "No";
   }
 
-  const modal = getLessonModal();
+  const modal = document.getElementById("lessonModalOverlay");
   if (!modal) return;
   modal.classList.remove("hidden");
   // Search student
@@ -414,11 +421,15 @@ function openLessonModal(l) {
 
 }
 
-async function openCreateLessonModal() {
+window.openCreateLessonModal = async function () {
 
-  // Fetch selected student's hourly rate for live price calculation
-  if (selectedStudentId) {
-    const { res, data } = await fetchJson(`${API}/students/${selectedStudentId}`);
+  console.log("currentStudentId:", window.currentStudentId);
+
+  const isStudentView = !!window.currentStudentId;
+
+  // Fetch hourly rate if in student view
+  if (window.currentStudentId) {
+    const { res, data } = await fetchJson(`${API}/students/${window.currentStudentId}`);
 
     if (res.ok) {
       window.currentHourlyRate = data.hourly_rate || 0;
@@ -437,23 +448,24 @@ async function openCreateLessonModal() {
   isBlockMode = false;
   selectedLessonId = null;
 
-  if (selectedStudentId && isStudentView) {
-    if (typeof toggleStudentSelect === "function") {
-      toggleStudentSelect(false); // coming from student profile
-    }
+  // Toggle student select
+  if (typeof toggleStudentSelect === "function") {
+    toggleStudentSelect(!isStudentView);
+  }
+
+  // Modal defaults
+  if (isStudentView) {
+    const student = window.allStudents.find(
+      s => s.id === window.currentStudentId
+    );
+
+    document.getElementById("lessonModalTitle").textContent =
+      student
+        ? `Create Lesson – ${student.first_name} ${student.last_name}`
+        : "Create Lesson";
   } else {
-    if (typeof toggleStudentSelect === "function") {
-      toggleStudentSelect(true); // coming from weekly
-    }
+    document.getElementById("lessonModalTitle").textContent = "Create Lesson";
   }
-
-  // 👇 ensure student is set when coming from student view
-  if (selectedStudentId && window.isStudentView) {
-    window.selectedStudentIdForLesson = selectedStudentId;
-  }
-
-  // Set modal defaults
-  document.getElementById("lessonModalTitle").textContent = "Create Lesson";
   document.getElementById("editLessonType").value = "Lesson";
   document.getElementById("editLessonPaid").value = "No";
 
@@ -461,10 +473,21 @@ async function openCreateLessonModal() {
   const studentResults = document.getElementById("lessonStudentResults");
 
   if (studentSearch && studentResults) {
-    if (window.currentStudentId) {
-      studentSearch.value = window.selectedStudentName || "";
+
+    if (isStudentView) {
+      const student = window.allStudents.find(
+        s => s.id === window.currentStudentId
+      );
+
+      studentSearch.value = student
+        ? `${student.first_name} ${student.last_name}`
+        : "";
+
+      studentSearch.dataset.studentId = window.currentStudentId;
+
       studentSearch.style.display = "none";
       studentResults.style.display = "none";
+
     } else {
       studentSearch.value = "";
       studentSearch.dataset.studentId = "";
@@ -473,16 +496,21 @@ async function openCreateLessonModal() {
     }
   }
 
-  const modal = getLessonModal();
-  if (!modal) return;
+  // Open modal
+  const modal = document.getElementById("lessonModalOverlay");
+
+  if (!modal) {
+    console.error("❌ Modal not found");
+    return;
+  }
 
   modal.classList.remove("hidden");
+
   setupStudentSearch();
 
   const startInput = document.getElementById("editStartTime");
   const endInput = document.getElementById("editEndTime");
 
-  // Update price preview when times change
   function updateLivePrice() {
     const price = calculateLessonPrice(
       startInput.value,
@@ -494,13 +522,11 @@ async function openCreateLessonModal() {
       `£${price.toFixed(2)}`;
   }
 
-  // Run once immediately
   updateLivePrice();
 
-  // Update whenever times change
   startInput.addEventListener("input", updateLivePrice);
   endInput.addEventListener("input", updateLivePrice);
-}
+};
 
 function openBlockModal() {
 
@@ -546,7 +572,7 @@ function openBlockModal() {
   document.getElementById("blockStart").value = "12:00";
   document.getElementById("blockEnd").value = "13:00";
 
-  const modal = getLessonModal();
+  const modal = document.getElementById("lessonModalOverlay");
   if (!modal) return;
   setupStudentSearch();
 
@@ -555,7 +581,7 @@ function openBlockModal() {
 }
 
 function closeLessonModal() {
-  const modal = getLessonModal();
+  const modal = document.getElementById("lessonModalOverlay");
   if (!modal) return;
   modal.classList.add("hidden");
 }
@@ -602,8 +628,8 @@ function setupStudentSearch(){
 async function saveLesson() {
 
   const student_id =
-    document.getElementById("lessonStudentSearch")?.dataset.studentId
-    || selectedStudentId;
+    window.currentStudentId ||
+    document.getElementById("lessonStudentSearch")?.dataset.studentId;
 
   if (isBlockMode) {
     const block_date = document.getElementById("blockDate").value;
@@ -611,7 +637,7 @@ async function saveLesson() {
     const end_time = document.getElementById("blockEnd").value;
     const reason = document.getElementById("blockReason").value;
 
-    const res = await fetch(`${API}/blocked_times`, {
+    const {res, data} = await fetchJson(`${API_BASE}/blocked_times`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ block_date, start_time, end_time, reason })
@@ -623,7 +649,7 @@ async function saveLesson() {
 
     if (!student_id) return alert("Select a student first");
 
-    const res = await fetch(`${API}/lessons`, {
+    const { res, data } = await fetchJson(`${API_BASE}/lessons`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -643,7 +669,7 @@ async function saveLesson() {
 
   } else {
 
-    const res = await fetch(`${API}/lessons/${selectedLessonId}`, {
+    const { res } = await fetchJson(`${API_BASE}/lessons/${selectedLessonId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -699,7 +725,14 @@ async function saveLesson() {
 async function deleteLesson() {
   if (!selectedLessonId) return;
 
-  await fetch(`${API}/lessons/${selectedLessonId}`, { method: "DELETE" });
+  const { res } = await fetchJson(`${API_BASE}/lessons/${selectedLessonId}`, {
+    method: "DELETE" });
+
+  if (!res.ok) {
+    alert("Failed to delete lesson");
+    return;
+  }
+
   closeLessonModal();
   loadWeek(currentWeekStart);
 }
