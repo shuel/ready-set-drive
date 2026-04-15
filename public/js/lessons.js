@@ -103,6 +103,7 @@ async function initLessons(params = {}) {
   if (!document.getElementById("prev-week")) return;
 
   selectedStudentId = params.student_id || null;
+  window.currentStudentId = selectedStudentId;
   window.isStudentView = !!params.student_id;
 
   if (selectedStudentId) {
@@ -166,9 +167,10 @@ async function loadWeek(weekStart) {
   if (bRes.ok) renderBlockedTimes(bData);
 
   let url = `${API}/lessons?start=${start}&end=${end}`;
-  if (selectedStudentId) url += `&student_id=${selectedStudentId}`;
+  //if (selectedStudentId) url += `&student_id=${selectedStudentId}`;
 
   const { res, data } = await fetchJson(url);
+  console.log("Lessons:", data.length);
   if (res.ok) renderLessons(data);
 
   calendar.classList.remove("fade-out");
@@ -245,6 +247,7 @@ function renderLessons(lessons) {
   document.querySelectorAll(".lesson-block").forEach(el => el.remove());
 
   lessons.forEach(l => {
+  
     const col = document.querySelector(`.day-col[data-date="${l.lesson_date}"]`);
     if (!col) return;
 
@@ -256,6 +259,19 @@ function renderLessons(lessons) {
 
     const block = document.createElement("div");
     block.className = "lesson-block";
+
+    // ✅ Check if this lesson belongs to current student
+    const isCurrentStudent = l.student_id === window.currentStudentId;
+
+    // ✅ Apply correct class
+    if (window.currentStudentId) {
+      block.classList.add(
+        isCurrentStudent ? "lesson-current" : "lesson-other"
+      );
+    }
+      
+    console.log("Current:", window.currentStudentId, "Lesson:", l.student_id);
+
     block.style.top = `${top}px`;
     block.style.height = `${height}px`;
     block.dataset.type = l.lesson_type;
@@ -312,7 +328,9 @@ function renderLessons(lessons) {
       });
     }
 
-    block.addEventListener("click", () => openLessonModal(l));
+    if (!window.currentStudentId || isCurrentStudent) {
+      block.addEventListener("click", () => openLessonModal(l));
+    }
     col.appendChild(block);
   });
 }

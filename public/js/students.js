@@ -743,9 +743,9 @@ function renderStudentCard(s, container) {
 
   card.querySelector(".diary-btn").addEventListener("click", (e) => {
     e.stopPropagation();
-    window.currentStudentId = s.id;
-    //loadSection('weekly', { student_id: s.id });
-    loadSection('weekly');
+    //window.currentStudentId = s.id;
+    loadSection('weekly', { student_id: s.id });
+    //loadSection('weekly');
   });
 
   card.querySelector(".edit-btn").addEventListener("click", (e) => {

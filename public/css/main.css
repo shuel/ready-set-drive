@@ -1334,3 +1334,28 @@ tr:nth-child(even) { background: #fafafa; }
   margin: 20px auto;
   padding: 0 20px;
 }
+
+/* Current student lesson (highlight) */
+.lesson-current {
+  border: 2px solid #3b82f6; /* nice blue */
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+  z-index: 2;
+}
+
+.lesson-current:hover {
+  transform: scale(1.02);
+}
+
+/* Other students (greyed out) */
+.lesson-other {
+  opacity: 0.35;
+  filter: grayscale(40%);
+  cursor: not-allowed;
+}
+
+/* Optional: prevent hover effects */
+.lesson-other:hover {
+  transform: none;
+  box-shadow: none;
+}
+
