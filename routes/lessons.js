@@ -96,14 +96,14 @@ router.get('/', requireAuth, async (req, res) => {
   let query = supabase
     .from('lessons')
     .select('*, students(first_name, last_name, hourly_rate)')
-    .order('lesson_date', { ascending: false })
-    .order('start_time', { ascending: false });
+    .order('lesson_date', { ascending: true })
+    .order('start_time', { ascending: true });
 
   if (student_id) query = query.eq('student_id', student_id);
 
   if (lesson_date) query = query.eq('lesson_date', lesson_date);
 
-  if (start && end) query = query.gte('lesson_date', start).lt('lesson_date', end);
+  if (start && end) query = query.gte('lesson_date', start).lte('lesson_date', end);
 
   const { data, error } = await query;
 

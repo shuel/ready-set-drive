@@ -170,7 +170,6 @@ async function loadWeek(weekStart) {
   //if (selectedStudentId) url += `&student_id=${selectedStudentId}`;
 
   const { res, data } = await fetchJson(url);
-  console.log("Lessons:", data.length);
   if (res.ok) renderLessons(data);
 
   calendar.classList.remove("fade-out");
@@ -270,8 +269,6 @@ function renderLessons(lessons) {
       );
     }
       
-    console.log("Current:", window.currentStudentId, "Lesson:", l.student_id);
-
     block.style.top = `${top}px`;
     block.style.height = `${height}px`;
     block.dataset.type = l.lesson_type;
@@ -441,7 +438,8 @@ function openLessonModal(l) {
 
 window.openCreateLessonModal = async function () {
 
-  console.log("currentStudentId:", window.currentStudentId);
+  // Refresh all student list
+  await loadAllStudents();
 
   const isStudentView = !!window.currentStudentId;
 

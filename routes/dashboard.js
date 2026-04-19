@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
 const requireAuth = require('../middleware/requireAuth');
+const formatDate = (d) => d.toLocaleDateString('en-CA');
 
 router.get('/stats', requireAuth, async (req, res) => {
 
-  const today = new Date().toISOString().split('T')[0];
+  console.log("STATS ROUTE HIT");
 
+  const today = formatDate(new Date());
   const now = new Date();
   const day = now.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
@@ -17,8 +19,8 @@ router.get('/stats', requireAuth, async (req, res) => {
   const weekEndDate = new Date(weekStartDate);
   weekEndDate.setDate(weekStartDate.getDate() + 6);
 
-  const weekStart = weekStartDate.toISOString().split('T')[0];
-  const weekEnd = weekEndDate.toISOString().split('T')[0];
+  const weekStart = formatDate(weekStartDate);
+  const weekEnd = formatDate(weekEndDate);
 
   // Get lessons
   const { data: lessons, error: lessonError } = await supabase
@@ -44,6 +46,11 @@ router.get('/stats', requireAuth, async (req, res) => {
   let todayLessons = 0;
   let weekLessons = 0;
   let weekRevenue = 0;
+
+  console.log("Today:", today);
+  console.log("Week Start:", weekStart);
+  console.log("Week End:", weekEnd);
+  console.log("Lesson Dates:", lessons.map(l => l.lesson_date));
 
   lessons.forEach(l => {
 
