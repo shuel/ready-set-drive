@@ -6,12 +6,38 @@
 
         <div class="dashboard-card">
             <div class="dash-top">
-            <div class="dash-label">
-                Today's Lessons: <b><span id="dash-today">0</span></b>
+                <div class="dash-label">Today's Lessons</div>
+                <i data-lucide="calendar"></i>
             </div>
-            <i data-lucide="calendar"></i>
+
+            <div class="dash-value" id="dash-today-count">0</div>
+
+            <!-- TODAY LIST INSIDE CARD -->
+            <div id="today-list" class="today-list">
+                <!-- JS renders here -->
             </div>
-            <div class="dash-value" id="dash-today">0</div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="dash-top upnext-header">
+                <div class="upnext-title-row">
+                    <span class="dash-label">Up Next</span>
+
+                    <div class="upnext-controls">
+                        <span class="upnext-showing-label">Showing</span>
+                        <select id="upnext-limit">
+                        <option value="3" selected>3</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                        </select>
+                    </div>
+                </div>
+
+                <i data-lucide="clock"></i>
+            </div>
+
+            <div id="upcoming-list" class="today-list"></div>
         </div>
 
         <div class="dashboard-card">

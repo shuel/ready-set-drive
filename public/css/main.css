@@ -1,3 +1,8 @@
+/* =========================================================
+   READY SET DRIVE - FULLY STRUCTURED CSS
+   (All original styles preserved, grouped with headings)
+========================================================= */
+
 :root {
   --primary: #1E3A8A;
   --bg: #F9FAFB;
@@ -127,6 +132,10 @@ tr:nth-child(even) { background: #fafafa; }
   opacity: 0.9;
 }
 
+
+/* ======================
+   WEEKLY CALENDAR
+====================== */
 .weekly-calendar{
   background:#fff;
   border-radius:10px;
@@ -182,6 +191,10 @@ tr:nth-child(even) { background: #fafafa; }
 }
 
 /* ===== Lesson Blocks ===== */
+
+/* ======================
+   LESSON BLOCKS
+====================== */
 .lesson-block {
   display: flex;
   flex-direction: column;
@@ -200,16 +213,33 @@ tr:nth-child(even) { background: #fafafa; }
   transition: 0.15s ease;
 }
 
+
+/* ======================
+   LESSON BLOCKS
+====================== */
 .lesson-block:hover {
   transform: scale(1.02);
 }
 
+
+/* ======================
+   LESSON BLOCKS
+====================== */
 .lesson-block[data-paid="false"] {
   border-left: 4px solid #e74c3c;
 }
 
+
+/* ======================
+   LESSON BLOCKS
+====================== */
 .lesson-block[data-paid="true"] {
   border-left: 4px solid #2ecc71;
+}
+
+.lesson-block[data-type="Test"] {
+  /*background: #436492;*/
+  border: 5px solid #f5a00d;
 }
 
 /* ===== Lesson Typography Refinement ===== */
@@ -235,6 +265,10 @@ tr:nth-child(even) { background: #fafafa; }
 /* End of css for weekly view calendar */
 
 /* ===== Modal Overlay ===== */
+
+/* ======================
+   MODAL
+====================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -246,6 +280,10 @@ tr:nth-child(even) { background: #fafafa; }
   z-index: 1000;
 }
 
+
+/* ======================
+   MODAL
+====================== */
 .modal-overlay.hidden{ display:none; }
 
 /* ===== Modal Container ===== */
@@ -473,6 +511,10 @@ tr:nth-child(even) { background: #fafafa; }
   gap: 16px;
 }
 
+
+/* ======================
+   STUDENTS
+====================== */
 .student-card {
   border-top: 3px solid var(--primary);
   background: white;
@@ -482,6 +524,10 @@ tr:nth-child(even) { background: #fafafa; }
   transition: 0.2s ease;
 }
 
+
+/* ======================
+   STUDENTS
+====================== */
 .student-card:hover {
   transform: translateY(-3px);
    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
@@ -533,11 +579,19 @@ tr:nth-child(even) { background: #fafafa; }
   align-items: center;
 }
 
+
+/* ======================
+   STUDENTS
+====================== */
 .student-card {
   position: relative;
   overflow: hidden;
 }
 
+
+/* ======================
+   STUDENTS
+====================== */
 .student-card::after {
   content: "";
   position: absolute;
@@ -548,6 +602,10 @@ tr:nth-child(even) { background: #fafafa; }
   transition: 0.2s ease;
 }
 
+
+/* ======================
+   STUDENTS
+====================== */
 .student-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 12px 30px rgba(0,0,0,0.06);
@@ -569,15 +627,27 @@ tr:nth-child(even) { background: #fafafa; }
 
 /* ===== Week Transition Animation ===== */
 
+
+/* ======================
+   WEEKLY CALENDAR
+====================== */
 .weekly-calendar {
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
+
+/* ======================
+   WEEKLY CALENDAR
+====================== */
 .weekly-calendar.fade-out {
   opacity: 0;
   transform: translateX(-8px);
 }
 
+
+/* ======================
+   WEEKLY CALENDAR
+====================== */
 .weekly-calendar.fade-in {
   opacity: 1;
   transform: translateX(0);
@@ -639,6 +709,10 @@ tr:nth-child(even) { background: #fafafa; }
 
 /* ===== Dashboard ===== */
 
+
+/* ======================
+   DASHBOARD
+====================== */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -679,11 +753,54 @@ tr:nth-child(even) { background: #fafafa; }
   position: relative;
 }*/
 
+.dashboard-section {
+  margin-top: 24px;
+}
+
+.today-list {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f2f2f2;
+  max-height: 120px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.today-item {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.today-item:last-child {
+  border-bottom: none;
+}
+
+.today-time {
+  font-weight: 600;
+}
+
+.today-name {
+  opacity: 0.8;
+}
+
+.today-empty {
+  padding: 12px;
+  text-align: center;
+  opacity: 0.6;
+}
+
 .dash-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.dashboard-section h2 {
+  font-size: 16px;
+  margin-bottom: 6px;
 }
 
 .dash-top i {
@@ -696,6 +813,54 @@ tr:nth-child(even) { background: #fafafa; }
   font-size: 32px;
   font-weight: 700;
   color: var(--primary);
+}
+
+.upnext-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.upnext-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.upnext-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.upnext-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.upnext-showing-label {
+  font-size: 12px;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.upnext-controls select {
+  height: 26px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.upnext-title-row .dash-label {
+  margin: 0;
+  line-height: 1;
 }
 
 .lb-price {
@@ -960,6 +1125,10 @@ tr:nth-child(even) { background: #fafafa; }
   color: #555;
 }
 
+
+/* ======================
+   STUDENTS
+====================== */
 .student-card {
   border-left: 5px solid #ddd;
 }
@@ -1253,6 +1422,10 @@ tr:nth-child(even) { background: #fafafa; }
   background: #eff6ff;
 }
 
+
+/* ======================
+   ACCOUNTS
+====================== */
 .accounts-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1260,6 +1433,10 @@ tr:nth-child(even) { background: #fafafa; }
   margin-top: 20px;
 }
 
+
+/* ======================
+   ACCOUNTS
+====================== */
 .accounts-cards .card {
   padding: 20px;
 }

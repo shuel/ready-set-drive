@@ -133,7 +133,8 @@ router.post('/', requireAuth, async (req, res) => {
     notes, 
     lesson_type,
     price,
-    payment_method
+    payment_method,
+    forceBooking
   } = req.body;
 
   if (!student_id || !lesson_date || !start_time || !end_time) {
@@ -157,12 +158,39 @@ router.post('/', requireAuth, async (req, res) => {
     });
   }
   */
-  const conflict = getOverlapWithBuffer(newStart, newEnd, lessons);
+  /*const conflict = getOverlapWithBuffer(newStart, newEnd, lessons);
 
   if (conflict) {
     return res.status(400).json({
       error: `You already have a lesson booked from ${conflict.start_time.slice(0,5)} to ${conflict.end_time.slice(0,5)}.`
     });
+  }*/
+
+  for (const l of lessons) {
+
+    const existingStart = toMinutes(l.start_time);
+    const existingEnd = toMinutes(l.end_time);
+
+    // 🚫 HARD BLOCK — real overlap (never allowed)
+    const isOverlap = newStart < existingEnd && newEnd > existingStart;
+
+    if (isOverlap) {
+      return res.status(400).json({
+        error: "OVERLAP_NOT_ALLOWED"
+      });
+    }
+
+    // ⚠️ BUFFER CHECK — 30 mins before/after
+    const bufferStart = existingStart - 30;
+    const bufferEnd = existingEnd + 30;
+
+    const isWithinBuffer = newStart < bufferEnd && newEnd > bufferStart;
+
+    if (isWithinBuffer && !forceBooking) {
+      return res.status(400).json({
+        error: "BUFFER_CONFLICT"
+      });
+    }
   }
 
   if (await overlapsBlockedTime(lesson_date, start_time, end_time)) {
@@ -227,7 +255,8 @@ router.put('/:id', requireAuth, async (req, res) => {
     lesson_type,
     price,
     paid,
-    payment_method
+    payment_method,
+    forceBooking
   } = req.body;
 
   // If time fields are provided, run overlap logic
@@ -245,12 +274,39 @@ router.put('/:id', requireAuth, async (req, res) => {
 
     const otherLessons = lessons.filter(l => l.id !== id);
 
-    const conflict = getOverlapWithBuffer(newStart, newEnd, otherLessons);
+    /*const conflict = getOverlapWithBuffer(newStart, newEnd, otherLessons);
 
     if (conflict) {
       return res.status(400).json({
         error: `You already have a lesson booked from ${conflict.start_time.slice(0,5)} to ${conflict.end_time.slice(0,5)}.`
       });
+    }*/
+
+    for (const l of otherLessons) {
+
+      const existingStart = toMinutes(l.start_time);
+      const existingEnd = toMinutes(l.end_time);
+
+      // 🚫 HARD BLOCK — real overlap
+      const isOverlap = newStart < existingEnd && newEnd > existingStart;
+
+      if (isOverlap) {
+        return res.status(400).json({
+          error: "OVERLAP_NOT_ALLOWED"
+        });
+      }
+
+      // ⚠️ BUFFER CHECK — 30 mins
+      const bufferStart = existingStart - 30;
+      const bufferEnd = existingEnd + 30;
+
+      const isWithinBuffer = newStart < bufferEnd && newEnd > bufferStart;
+
+      if (isWithinBuffer && !forceBooking) {
+        return res.status(400).json({
+          error: "BUFFER_CONFLICT"
+        });
+      }
     }
 
     if (await overlapsBlockedTime(lesson_date, start_time, end_time)) {
@@ -261,7 +317,15 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 
   // Build update object dynamically
-  const updateFields = { ...req.body };
+  //const updateFields = { ...req.body };
+  const updateFields = {
+    lesson_date,
+    start_time,
+    end_time,
+    lesson_type,
+    paid,
+    payment_method
+  };
 
   // 🔹 Rebuild timerange if date/time provided
   if (lesson_date && start_time && end_time) {

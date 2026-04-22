@@ -259,6 +259,9 @@ function renderLessons(lessons) {
     const block = document.createElement("div");
     block.className = "lesson-block";
 
+    // Set the type of block whether lesson or test
+    block.dataset.type = l.lesson_type || "Lesson";
+
     // ✅ Check if this lesson belongs to current student
     const isCurrentStudent = l.student_id === window.currentStudentId;
 
@@ -641,7 +644,8 @@ function setupStudentSearch(){
 
 }
 
-async function saveLesson() {
+async function saveLesson(options = {}) {
+  const forceBooking = options.forceBooking || false;
 
   const student_id =
     window.currentStudentId ||
@@ -675,17 +679,36 @@ async function saveLesson() {
         end_time: document.getElementById("editEndTime").value,
         lesson_type: document.getElementById("editLessonType").value,
         paid: document.getElementById("editLessonPaid").value === "Yes",
+        forceBooking
       })
     });
 
     if (!res.ok) {
-      const err = await res.json();
+      //const err = await res.json();
+      const err = data;
+      if (err.error === "BUFFER_CONFLICT" && !forceBooking) {
+
+        const confirmForce = confirm(
+          "This lesson is within 30 minutes of another lesson.\n\nForce booking?"
+        );
+
+        if (confirmForce) {
+          return saveLesson({ forceBooking: true });
+        }
+
+        return;
+      }
+
+      if (err.error === "OVERLAP_NOT_ALLOWED") {
+        return alert("Lessons cannot overlap");
+      }
+
       return alert(err.error || "Failed to create lesson");
     }
 
   } else {
 
-    const { res } = await fetchJson(`${API_BASE}/lessons/${selectedLessonId}`, {
+    const { res, data } = await fetchJson(`${API_BASE}/lessons/${selectedLessonId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -694,11 +717,34 @@ async function saveLesson() {
         end_time: document.getElementById("editEndTime").value,
         lesson_type: document.getElementById("editLessonType").value,
         paid: document.getElementById("editLessonPaid").value === "Yes",
+        forceBooking
       })
     });
 
     if (!res.ok) {
-      const err = await res.json();
+
+      const err = data;
+
+      console.log("Checking Buffer Cnflict");
+
+      // ⚠️ BUFFER CONFLICT if within 30 minutes of another lesson
+      if (err.error === "BUFFER_CONFLICT" && !forceBooking) {
+
+        const confirmForce = confirm(
+          "This lesson is within 30 minutes of another lesson.\n\nForce booking?"
+        );
+
+        if (confirmForce) {
+          return saveLesson({ forceBooking: true }); // 🔁 retry
+        }
+
+        return;
+      }
+
+      // 🚫 HARD BLOCK (overlap)
+      if (err.error === "OVERLAP_NOT_ALLOWED") {
+        return alert("Lessons cannot overlap");
+      }
       return alert(err.error || "Failed to update lesson");
     }
   }
