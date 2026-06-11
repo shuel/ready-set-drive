@@ -18,6 +18,7 @@ async function requireAuth() {
 
   console.log("✅ Auth OK");
   return true;
+
 }
 
 // ========================================
@@ -78,7 +79,7 @@ async function startApp() {
 // ========================================
 // 🌐 GLOBAL CONFIG
 // ========================================
-window.API_BASE = "http://localhost:5000";
+window.API_BASE = "http://192.168.0.18:5000";
 window.allStudents = [];
 
 // ========================================
@@ -126,7 +127,7 @@ function loadSection(section, params = {}) {
     return;
   }
 
-  fetch(`${section}.html`)
+  fetch(`/${section}.html`)
     .then(res => res.text())
     .then(html => {
 

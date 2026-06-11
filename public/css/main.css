@@ -722,12 +722,20 @@ tr:nth-child(even) { background: #fafafa; }
 
 .dashboard-card {
   background: #fff;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  border: 1px solid rgba(0,0,0,0.04);
+  transition: 0.2s ease;
+}
+/*.dashboard-card {
+  background: #fff;
   border-radius: 10px;
   padding: 18px;
   border: 1px solid #d1d5db;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   transition: 0.2s ease;
-}
+}*/
 
 .dashboard-card:hover{
   transform:translateY(-2px);
@@ -761,9 +769,13 @@ tr:nth-child(even) { background: #fafafa; }
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid #f2f2f2;
-  max-height: 120px;
+
+  max-height: 180px;
   overflow-y: auto;
-  scroll-behavior: smooth;
+
+  /* ✅ Fix mobile scroll */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .today-item {
@@ -771,14 +783,11 @@ tr:nth-child(even) { background: #fafafa; }
   gap: 12px;
   padding: 6px 0;
   font-size: 13px;
+  font-weight: 600;
 }
 
 .today-item:last-child {
   border-bottom: none;
-}
-
-.today-time {
-  font-weight: 600;
 }
 
 .today-name {
@@ -1536,3 +1545,102 @@ tr:nth-child(even) { background: #fafafa; }
   box-shadow: none;
 }
 
+/* =========================================
+   MOBILE RESPONSIVE (DASHBOARD)
+========================================= */
+@media (max-width: 768px) {
+
+  /* 1. Container spacing */
+  .container {
+    padding: 20px 14px;
+  }
+
+  /* 2. Dashboard grid → force single column */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* 3. Cards slightly tighter */
+  .dashboard-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  /* 4. Header layout fix (VERY IMPORTANT for Up Next) */
+  .dash-top {
+    align-items: flex-start;
+  }
+
+  /* Up Next header wrap */
+  .upnext-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .upnext-controls {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .upnext-controls select {
+    min-width: 60px;
+  }
+
+  /* 5. Values slightly smaller */
+  .dash-value {
+    font-size: 24px;
+  }
+
+  /* 6. Lesson list improvements */
+  .today-list {
+    max-height: 200px;
+  }
+
+  .today-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 14px;
+  }
+
+  .today-time {
+    font-size: 13px;
+  }
+
+  .today-name {
+    font-size: 13px;
+  }
+
+  /* =========================================
+    MOBILE TOUCH POLISH
+  ========================================= */
+
+  /* Bigger tap areas */
+  .today-item {
+    padding: 8px 0;
+  }
+
+  /* Slightly more breathing room */
+  .dashboard-card {
+    padding: 16px;
+  }
+
+  /* Make dropdown easier to tap */
+  .upnext-controls select {
+    height: 32px;
+    font-size: 14px;
+  }
+
+  /* Improve readability */
+  .dash-label {
+    font-size: 12px;
+  }
+
+  .dash-value {
+    font-size: 26px;
+  }
+
+}

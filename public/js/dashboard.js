@@ -40,7 +40,7 @@ async function loadTodayLessons() {
 
     item.innerHTML = `
       <div class="today-time">
-        ${formatTime(lesson.start_time)} – ${formatTime(lesson.end_time)}
+        ${formatTime(lesson.start_time)}
       </div>
       <div class="today-name">
         ${name}
