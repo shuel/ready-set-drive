@@ -256,6 +256,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     price,
     paid,
     payment_method,
+    payment_reference,
     forceBooking
   } = req.body;
 
@@ -324,7 +325,8 @@ router.put('/:id', requireAuth, async (req, res) => {
     end_time,
     lesson_type,
     paid,
-    payment_method
+    payment_method,
+    payment_reference
   };
 
   // 🔹 Rebuild timerange if date/time provided
@@ -373,9 +375,13 @@ router.put('/:id', requireAuth, async (req, res) => {
       updateFields.payment_date =
         new Date().toISOString().split('T')[0];
       updateFields.payment_method = payment_method || null;
+      // Keep the generated reference from the frontend
+      updateFields.payment_reference = payment_reference || null;
     } else {
       updateFields.payment_date = null;
       updateFields.payment_method = null;
+      // If lesson is marked unpaid, remove payment reference
+      updateFields.payment_reference = null;
     }
   }
 
