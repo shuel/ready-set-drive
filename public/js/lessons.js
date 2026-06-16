@@ -306,7 +306,7 @@ function renderLessons(lessons) {
       ${paidIcon}
     `;
 
-    const payBtn = block.querySelector('.lb-mark-paid');
+/*    const payBtn = block.querySelector('.lb-mark-paid');
 
     if (payBtn) {
       payBtn.addEventListener('click', async (e) => {
@@ -319,6 +319,50 @@ function renderLessons(lessons) {
         });
 
         if ( !res.ok ) {
+          alert("Failed to update lesson");
+          return;
+        }
+
+        // Reload week to refresh UI + revenue
+        loadWeek(currentWeekStart);
+      });
+    }
+*/
+    const payBtn = block.querySelector('.lb-mark-paid');
+
+    if (payBtn) {
+      payBtn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent opening lesson modal
+
+        // ========================================
+        // AUTO GENERATE PAYMENT REFERENCE
+        // ========================================
+        // Format:
+        // Initials + Lesson Date + DR
+        //
+        // Example:
+        // Sarah Thomas
+        // 2026-03-23
+        // -> ST230326DR
+        // ========================================
+
+        const paymentReference = generatePaymentReference(
+          l.student_name,
+          l.lesson_date
+        );
+
+        console.log("Payment Ref:", paymentReference);
+
+        const { res } = await fetchJson(`${API_BASE}/lessons/${l.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paid: true,
+            payment_reference: paymentReference
+          })
+        });
+
+        if (!res.ok) {
           alert("Failed to update lesson");
           return;
         }
@@ -644,12 +688,63 @@ function setupStudentSearch(){
 
 }
 
+// ========================================
+// PAYMENT REFERENCE GENERATOR
+// ========================================
+// Creates a payment reference in the format:
+//
+// Initials + Lesson Date + DR
+//
+// Example:
+// Sarah Thomas
+// 2026-03-23
+// -> ST230326DR
+//
+// Used when a lesson is marked as paid.
+// ========================================
+function generatePaymentReference(studentName, lessonDate) {
+
+  if (!studentName || !lessonDate) return null;
+
+  // Build student initials
+  const initials = studentName
+    .split(" ")
+    .filter(Boolean)
+    .map(namePart => namePart[0].toUpperCase())
+    .join("");
+
+  // Convert YYYY-MM-DD into DDMMYY
+  const [year, month, day] = lessonDate.split("-");
+
+  return `${initials}${day}${month}${year.slice(2)}DR`;
+}
+
 async function saveLesson(options = {}) {
   const forceBooking = options.forceBooking || false;
 
   const student_id =
     window.currentStudentId ||
     document.getElementById("lessonStudentSearch")?.dataset.studentId;
+
+  // Generate payment reference automatically if marked paid
+  const lessonDate = document.getElementById("editLessonDate").value;
+
+  const isPaid =
+    document.getElementById("editLessonPaid").value === "Yes";
+
+  // Try to get the student name from whichever screen opened the modal.
+  // Student profile usually uses window.selectedStudentName.
+  // General calendar student search usually has the name in the search input.
+  const studentName =
+    window.selectedStudentName ||
+    document.getElementById("lessonStudentSearch")?.value ||
+    "";
+
+  console.log("Student name for payment ref:", studentName);
+
+  const paymentReference = isPaid
+    ? generatePaymentReference(studentName, lessonDate)
+    : null;
 
   if (isBlockMode) {
     const block_date = document.getElementById("blockDate").value;
@@ -674,11 +769,12 @@ async function saveLesson(options = {}) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         student_id: student_id,
-        lesson_date: document.getElementById("editLessonDate").value,
+        lesson_date: lessonDate,
         start_time: document.getElementById("editStartTime").value,
         end_time: document.getElementById("editEndTime").value,
         lesson_type: document.getElementById("editLessonType").value,
-        paid: document.getElementById("editLessonPaid").value === "Yes",
+        paid: isPaid,
+        payment_reference: paymentReference,
         forceBooking
       })
     });
@@ -712,11 +808,12 @@ async function saveLesson(options = {}) {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        lesson_date: document.getElementById("editLessonDate").value,
+        lesson_date: lessonDate,
         start_time: document.getElementById("editStartTime").value,
         end_time: document.getElementById("editEndTime").value,
         lesson_type: document.getElementById("editLessonType").value,
-        paid: document.getElementById("editLessonPaid").value === "Yes",
+        paid: isPaid,
+        payment_reference: paymentReference,
         forceBooking
       })
     });
