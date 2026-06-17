@@ -1032,6 +1032,9 @@ function renderStudentLessons(lessons) {
         </td>
         <td>
           <button class="lesson-pay ${l.paid ? 'hidden-pay' : ''}" data-id="${l.id}">💷</button>
+          ${l.paid ? `
+            <button class="lesson-receipt" data-id="${l.id}">🧾</button>
+          ` : ""}
           <button class="lesson-edit" data-id="${l.id}">✏️</button>
           <button class="lesson-delete" data-id="${l.id}">🗑</button>
         </td>
@@ -1077,6 +1080,16 @@ function renderStudentLessons(lessons) {
       } else {
         showMessage("Failed to update payment", e.clientX, e.clientY);
       }
+    });
+  });
+
+  // Download receipt for paid lesson
+  const receiptButtons = container.querySelectorAll(".lesson-receipt");
+
+  receiptButtons.forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const lessonId = btn.dataset.id;
+      await downloadReceipt(lessonId);
     });
   });
 

@@ -3,6 +3,9 @@ const router = express.Router();
 const supabase = require('../supabaseClient');
 const requireAuth = require('../middleware/requireAuth');
 
+const PDFDocument = require('pdfkit');
+const path = require('path');
+
 // =======================
 // Helpers
 function toMinutes(timeStr) {
@@ -117,6 +120,202 @@ router.get('/', requireAuth, async (req, res) => {
     }));
 
   res.json(lessons);
+});
+
+// =======================
+// GENERATE lesson receipt PDF
+// =======================
+// Creates a professional PDF receipt for a paid lesson.
+// If the lesson does not already have a receipt number,
+// one is generated and saved before the PDF is downloaded.
+router.get('/:id/receipt', requireAuth, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Load lesson with linked student details
+    const { data: lesson, error } = await supabase
+      .from('lessons')
+      .select('*, students(first_name, last_name, hourly_rate)')
+      .eq('id', id)
+      .single();
+
+    if (error || !lesson) {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+
+    // Receipts should only be generated for paid lessons
+    if (!lesson.paid) {
+      return res.status(400).json({
+        error: 'Receipt can only be generated for paid lessons'
+      });
+    }
+
+    const studentName = lesson.students
+      ? `${lesson.students.first_name || ''} ${lesson.students.last_name || ''}`.trim()
+      : 'Student';
+
+    // Use existing receipt number if already generated
+    let receiptNumber = lesson.receipt_number;
+
+    // Generate a receipt number only the first time a receipt is requested
+    if (!receiptNumber) {
+      const year = new Date().getFullYear();
+
+      // Count existing receipts for the current year
+      const { count, error: countError } = await supabase
+        .from('lessons')
+        .select('id', {
+          count: 'exact',
+          head: true
+        })
+        .like('receipt_number', `RSD-${year}-%`);
+
+      if (countError) {
+        return res.status(500).json({ error: countError.message });
+      }
+
+      const nextNumber = String((count || 0) + 1).padStart(6, '0');
+
+      receiptNumber = `RSD-${year}-${nextNumber}`;
+
+      // Save receipt number permanently
+      const { error: receiptUpdateError } = await supabase
+        .from('lessons')
+        .update({ receipt_number: receiptNumber })
+        .eq('id', id);
+
+      if (receiptUpdateError) {
+        return res.status(500).json({ error: receiptUpdateError.message });
+      }
+    }
+
+    // File name shown when downloaded
+    const safeStudentName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${receiptNumber}_${safeStudentName}.pdf`;
+
+    // Tell browser this is a downloadable PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`
+    );
+
+    // Create PDF
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: 50
+    });
+
+    doc.pipe(res);
+
+    // Logo path
+    const logoPath = path.join(
+      __dirname,
+      '..',
+      'public',
+      'images',
+      'rsd-logo.png'
+    );
+
+    // Header
+    doc.image(logoPath, 50, 40, { width: 90 });
+
+    doc
+      .fontSize(22)
+      .font('Helvetica-Bold')
+      .text('Ready Set Drive', 160, 50);
+
+    doc
+      .fontSize(11)
+      .font('Helvetica')
+      .text('Automatic Driving Lessons', 160, 78)
+      .text('Professional Driving Tuition', 160, 94);
+
+    doc
+      .moveTo(50, 145)
+      .lineTo(545, 145)
+      .stroke();
+
+    // Receipt title
+    doc
+      .fontSize(20)
+      .font('Helvetica-Bold')
+      .text('Payment Receipt', 50, 175);
+
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .text(`Receipt No: ${receiptNumber}`, 50, 210)
+      .text(`Payment Ref: ${lesson.payment_reference || 'N/A'}`, 50, 228)
+      .text(`Payment Date: ${lesson.payment_date || 'N/A'}`, 50, 246);
+
+    // Student details
+    doc
+      .fontSize(13)
+      .font('Helvetica-Bold')
+      .text('Student Details', 50, 295);
+
+    doc
+      .fontSize(11)
+      .font('Helvetica')
+      .text(`Student Name: ${studentName}`, 50, 320);
+
+    // Lesson details
+    doc
+      .fontSize(13)
+      .font('Helvetica-Bold')
+      .text('Lesson Details', 50, 365);
+
+    doc
+      .fontSize(11)
+      .font('Helvetica')
+      .text(`Lesson Date: ${lesson.lesson_date}`, 50, 390)
+      .text(`Start Time: ${lesson.start_time?.slice(0, 5) || ''}`, 50, 408)
+      .text(`End Time: ${lesson.end_time?.slice(0, 5) || ''}`, 50, 426)
+      .text(`Lesson Type: ${lesson.lesson_type || 'Lesson'}`, 50, 444);
+
+    // Amount box
+    doc
+      .roundedRect(50, 500, 495, 70, 8)
+      .stroke();
+
+    doc
+      .fontSize(13)
+      .font('Helvetica-Bold')
+      .text('Amount Paid', 70, 522);
+
+    doc
+      .fontSize(20)
+      .font('Helvetica-Bold')
+      .text(`£${Number(lesson.price || 0).toFixed(2)}`, 420, 518);
+
+    // Footer
+    doc
+      .fontSize(10)
+      .font('Helvetica')
+      .text(
+        'Thank you for your payment. Please keep this receipt for your records.',
+        50,
+        650,
+        { align: 'center' }
+      );
+
+    doc
+      .fontSize(9)
+      .fillColor('gray')
+      .text(
+        'Ready Set Drive | Automatic Driving Lessons',
+        50,
+        720,
+        { align: 'center' }
+      );
+
+    doc.end();
+
+  } catch (err) {
+    console.error('Receipt generation error:', err);
+    return res.status(500).json({ error: 'Failed to generate receipt' });
+  }
 });
 
 // =======================

@@ -25,6 +25,52 @@ document.addEventListener("click", (e) => {
 
 /* ---------------- HELPERS ---------------- */
 
+// ========================================
+// RECEIPT DOWNLOAD
+// ========================================
+// Downloads a PDF receipt for a lesson.
+//
+// The user must be logged in because the
+// backend route is protected by requireAuth.
+// ========================================
+async function downloadReceipt(lessonId) {
+
+  const { data } = await supabase.auth.getSession();
+
+  const token = data.session?.access_token;
+
+  const res = await fetch(
+    `${API_BASE}/lessons/${lessonId}/receipt`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  if (!res.ok) {
+    alert("Failed to generate receipt");
+    return;
+  }
+
+  const blob = await res.blob();
+
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "receipt.pdf";
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+  window.URL.revokeObjectURL(url);
+}
+
 // Convert +447XXXXXXXXX → 447XXXXXXXXX for WhatsApp
 function phoneForWhatsApp(phone) {
   return phone.replace("+", "");
