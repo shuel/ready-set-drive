@@ -221,8 +221,26 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
     }
 
     // File name shown when downloaded
-    const safeStudentName = studentName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const filename = `${receiptNumber}_${safeStudentName}.pdf`;
+    const safeStudentName = studentName.replace(/[^a-z0-9]/gi, '-');
+    const filename = `${receiptNumber}-${safeStudentName}.pdf`;
+
+    // Format dates for receipt display
+    const formatDate = (dateStr) => {
+      if (!dateStr) return 'N/A';
+
+      return new Date(dateStr).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    };
+
+    const lessonDateDisplay = formatDate(lesson.lesson_date);
+    const paymentDateDisplay = formatDate(lesson.payment_date);
+
+    const startTime = lesson.start_time?.slice(0, 5) || '';
+    const endTime = lesson.end_time?.slice(0, 5) || '';
+    const amountPaid = `£${Number(lesson.price || 0).toFixed(2)}`;
 
     // Tell browser this is a downloadable PDF
     res.setHeader('Content-Type', 'application/pdf');
@@ -234,10 +252,17 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
     // Create PDF
     const doc = new PDFDocument({
       size: 'A4',
-      margin: 50
+      margin: 45
     });
 
     doc.pipe(res);
+
+    // Brand colours
+    const navy = '#0B1F3A';
+    const blue = '#1E88E5';
+    const lightBlue = '#EAF3FF';
+    const grey = '#6B7280';
+    const lightGrey = '#E5E7EB';
 
     // Logo path
     const logoPath = path.join(
@@ -248,97 +273,170 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
       'rsd-logo.png'
     );
 
-    // Header
-    doc.image(logoPath, 50, 40, { width: 90 });
+    // ========================================
+    // HEADER
+    // ========================================
+
+    doc.image(logoPath, 45, 35, { width: 82 });
 
     doc
+      .fillColor(navy)
       .fontSize(22)
       .font('Helvetica-Bold')
-      .text('Ready Set Drive', 160, 50);
+      .text('READY SET DRIVE', 145, 45);
 
     doc
-      .fontSize(11)
-      .font('Helvetica')
-      .text('Automatic Driving Lessons', 160, 78)
-      .text('Professional Driving Tuition', 160, 94);
-
-    doc
-      .moveTo(50, 145)
-      .lineTo(545, 145)
-      .stroke();
-
-    // Receipt title
-    doc
-      .fontSize(20)
-      .font('Helvetica-Bold')
-      .text('Payment Receipt', 50, 175);
-
-    doc
+      .fillColor(grey)
       .fontSize(10)
       .font('Helvetica')
-      .text(`Receipt No: ${receiptNumber}`, 50, 210)
-      .text(`Payment Ref: ${paymentReference}`, 50, 228)
-      .text(`Payment Date: ${lesson.payment_date || 'N/A'}`, 50, 246);
+      .text('Automatic Driving Lessons', 145, 74)
+      .text('DVSA Approved Driving Instructor', 145, 90);
 
-    // Student details
+    // Receipt box
     doc
-      .fontSize(13)
+      .roundedRect(390, 42, 155, 68, 8)
+      .fillAndStroke(lightBlue, blue);
+
+    doc
+      .fillColor(navy)
+      .fontSize(16)
       .font('Helvetica-Bold')
-      .text('Student Details', 50, 295);
+      .text('RECEIPT', 410, 55, { width: 115, align: 'center' });
 
     doc
-      .fontSize(11)
+      .fillColor(grey)
+      .fontSize(8)
       .font('Helvetica')
-      .text(`Student Name: ${studentName}`, 50, 320);
+      .text(receiptNumber, 405, 82, { width: 125, align: 'center' });
 
-    // Lesson details
+    // Blue divider
     doc
-      .fontSize(13)
+      .strokeColor(blue)
+      .lineWidth(2)
+      .moveTo(45, 135)
+      .lineTo(550, 135)
+      .stroke();
+
+    // ========================================
+    // PAYMENT SUMMARY
+    // ========================================
+
+    doc
+      .fillColor(navy)
+      .fontSize(12)
       .font('Helvetica-Bold')
-      .text('Lesson Details', 50, 365);
+      .text('RECEIVED FROM', 45, 165);
 
     doc
-      .fontSize(11)
+      .fillColor('#000000')
+      .fontSize(15)
+      .font('Helvetica-Bold')
+      .text(studentName, 45, 188);
+
+    doc
+      .fillColor(navy)
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text('PAYMENT DETAILS', 320, 165);
+
+    doc
+      .fillColor(grey)
+      .fontSize(10)
       .font('Helvetica')
-      .text(`Lesson Date: ${lesson.lesson_date}`, 50, 390)
-      .text(`Start Time: ${lesson.start_time?.slice(0, 5) || ''}`, 50, 408)
-      .text(`End Time: ${lesson.end_time?.slice(0, 5) || ''}`, 50, 426)
-      .text(`Lesson Type: ${lesson.lesson_type || 'Lesson'}`, 50, 444);
+      .text('Payment Reference', 320, 190)
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text(paymentReference, 440, 190);
 
-    // Amount box
     doc
-      .roundedRect(50, 500, 495, 70, 8)
+      .fillColor(grey)
+      .font('Helvetica')
+      .text('Payment Date', 320, 210)
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text(paymentDateDisplay, 440, 210);
+
+    // ========================================
+    // LESSON DETAILS CARD
+    // ========================================
+
+    doc
+      .roundedRect(45, 260, 505, 120, 10)
+      .strokeColor(lightGrey)
+      .lineWidth(1)
       .stroke();
 
     doc
+      .fillColor(navy)
       .fontSize(13)
       .font('Helvetica-Bold')
-      .text('Amount Paid', 70, 522);
+      .text('LESSON DETAILS', 65, 282);
 
     doc
-      .fontSize(20)
-      .font('Helvetica-Bold')
-      .text(`£${Number(lesson.price || 0).toFixed(2)}`, 420, 518);
-
-    // Footer
-    doc
+      .fillColor(grey)
       .fontSize(10)
       .font('Helvetica')
-      .text(
-        'Thank you for your payment. Please keep this receipt for your records.',
-        50,
-        650,
-        { align: 'center' }
-      );
+      .text('Date', 65, 315)
+      .text('Time', 65, 340)
+      .text('Lesson Type', 65, 365);
 
     doc
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text(lessonDateDisplay, 170, 315)
+      .text(`${startTime} - ${endTime}`, 170, 340)
+      .text('Automatic Driving Lesson', 170, 365);
+
+    // ========================================
+    // AMOUNT RECEIVED CARD
+    // ========================================
+
+    doc
+      .roundedRect(45, 425, 505, 105, 12)
+      .fillAndStroke(lightBlue, blue);
+
+    doc
+      .fillColor(navy)
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text('AMOUNT RECEIVED', 45, 450, {
+        width: 505,
+        align: 'center'
+      });
+
+    doc
+      .fillColor(navy)
+      .fontSize(34)
+      .font('Helvetica-Bold')
+      .text(amountPaid, 45, 475, {
+        width: 505,
+        align: 'center'
+      });
+
+    // ========================================
+    // FOOTER
+    // ========================================
+
+    doc
+      .fillColor('#000000')
+      .fontSize(11)
+      .font('Helvetica')
+      .text('Thank you for your payment.', 45, 585, {
+        width: 505,
+        align: 'center'
+      });
+
+    doc
+      .fillColor(grey)
       .fontSize(9)
-      .fillColor('gray')
       .text(
-        'Ready Set Drive | Automatic Driving Lessons',
-        50,
-        720,
-        { align: 'center' }
+        'Ready Set Drive — Helping you become a safe, confident driver for life.',
+        45,
+        710,
+        {
+          width: 505,
+          align: 'center'
+        }
       );
 
     doc.end();
