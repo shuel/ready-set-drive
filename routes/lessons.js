@@ -154,6 +154,37 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
       ? `${lesson.students.first_name || ''} ${lesson.students.last_name || ''}`.trim()
       : 'Student';
 
+    // ========================================
+    // PAYMENT REFERENCE FALLBACK
+    // ========================================
+    // Older paid lessons may not have a payment
+    // reference because the feature was added
+    // later. If missing, generate and save one.
+    // ========================================
+
+    let paymentReference = lesson.payment_reference;
+
+    if (!paymentReference) {
+
+      const initials = studentName
+        .split(" ")
+        .filter(Boolean)
+        .map(name => name[0].toUpperCase())
+        .join("");
+
+      const [year, month, day] = lesson.lesson_date.split("-");
+
+      paymentReference =
+        `${initials}${day}${month}${year.slice(2)}DR`;
+
+      await supabase
+        .from("lessons")
+        .update({
+          payment_reference: paymentReference
+        })
+        .eq("id", lesson.id);
+    }
+
     // Use existing receipt number if already generated
     let receiptNumber = lesson.receipt_number;
 
@@ -246,7 +277,7 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
       .fontSize(10)
       .font('Helvetica')
       .text(`Receipt No: ${receiptNumber}`, 50, 210)
-      .text(`Payment Ref: ${lesson.payment_reference || 'N/A'}`, 50, 228)
+      .text(`Payment Ref: ${paymentReference}`, 50, 228)
       .text(`Payment Date: ${lesson.payment_date || 'N/A'}`, 50, 246);
 
     // Student details
