@@ -60,7 +60,19 @@ async function downloadReceipt(lessonId) {
   const a = document.createElement("a");
 
   a.href = url;
-  a.download = "receipt.pdf";
+  const contentDisposition = res.headers.get("Content-Disposition");
+
+  let filename = "receipt.pdf";
+
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="(.+)"/);
+
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  a.download = filename;
 
   document.body.appendChild(a);
 

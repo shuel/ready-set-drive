@@ -13,6 +13,26 @@ function toMinutes(timeStr) {
   return h * 60 + m;
 }
 
+// ========================================
+// PDF LESSON DISPLAY HELPERS
+// ========================================
+
+function getLessonDescription(lesson) {
+  if (lesson.lesson_type === 'Test') {
+    return 'Driving Test Vehicle Hire & Instructor Support';
+  }
+
+  return 'Automatic Driving Lesson';
+}
+
+function getLessonTimeDisplay(lesson, startTime, endTime) {
+  if (lesson.lesson_type === 'Test') {
+    return startTime;
+  }
+
+  return `${startTime} - ${endTime}`;
+}
+
 // =======================
 // Calculate lesson price
 // duration × student hourly rate
@@ -244,6 +264,12 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
 
     // Tell browser this is a downloadable PDF
     res.setHeader('Content-Type', 'application/pdf');
+
+    res.setHeader(
+      'Access-Control-Expose-Headers',
+      'Content-Disposition'
+    );
+
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${filename}"`
@@ -380,12 +406,22 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
       .text('Time', 65, 340)
       .text('Lesson Type', 65, 365);
 
+    const receiptLessonTime = getLessonTimeDisplay(
+      lesson,
+      startTime,
+      endTime
+    );
+
+    const receiptLessonDescription = getLessonDescription(
+      lesson
+    );
+
     doc
       .fillColor('#000000')
       .font('Helvetica-Bold')
       .text(lessonDateDisplay, 170, 315)
-      .text(`${startTime} - ${endTime}`, 170, 340)
-      .text('Automatic Driving Lesson', 170, 365);
+      .text(receiptLessonTime, 170, 340)
+      .text(receiptLessonDescription, 170, 365);
 
     // ========================================
     // AMOUNT RECEIVED CARD
