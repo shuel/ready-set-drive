@@ -1031,12 +1031,13 @@ function renderStudentLessons(lessons) {
           </span>
         </td>
         <td>
-          <button class="lesson-pay ${l.paid ? 'hidden-pay' : ''}" data-id="${l.id}">💷</button>
+          <button class="lesson-pay ${l.paid ? 'hidden-pay' : ''}" data-id="${l.id}" title="Mark as Paid">💷</button>
           ${l.paid ? `
-            <button class="lesson-receipt" data-id="${l.id}">🧾</button>
+            <button class="lesson-receipt" data-id="${l.id}" title="Generate Receipt">🧾</button>
           ` : ""}
-          <button class="lesson-edit" data-id="${l.id}">✏️</button>
-          <button class="lesson-delete" data-id="${l.id}">🗑</button>
+          <button class="lesson-invoice" data-id="${l.id}" title="Generate Invoice">📄</button>
+          <button class="lesson-edit" data-id="${l.id}" title="Edit Lesson">✏️</button>
+          <button class="lesson-delete" data-id="${l.id}" title="DElete Lesson">🗑</button>
         </td>
       </tr>
     `;
@@ -1090,6 +1091,16 @@ function renderStudentLessons(lessons) {
     btn.addEventListener("click", async () => {
       const lessonId = btn.dataset.id;
       await downloadReceipt(lessonId);
+    });
+  });
+
+  // Download invoice
+  const invoiceButtons = container.querySelectorAll(".lesson-invoice");
+
+  invoiceButtons.forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const lessonId = btn.dataset.id;
+      await downloadInvoice(lessonId);
     });
   });
 

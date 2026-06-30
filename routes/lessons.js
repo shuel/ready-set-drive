@@ -483,6 +483,286 @@ router.get('/:id/receipt', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/:id/invoice', requireAuth, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Load lesson with linked student details
+    const { data: lesson, error } = await supabase
+      .from('lessons')
+      .select('*, students(first_name, last_name, hourly_rate)')
+      .eq('id', id)
+      .single();
+
+    if (error || !lesson) {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+
+    const student = lesson.students;
+
+    if (!student) {
+      return res.status(400).json({ error: 'Student details missing' });
+    }
+
+    // Generate invoice number if missing
+    let invoiceNumber = lesson.invoice_number;
+
+    if (!invoiceNumber) {
+      const year = new Date().getFullYear();
+      const random = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+      invoiceNumber = `RSD-INV-${year}-${random}`;
+
+      const { error: updateError } = await supabase
+        .from('lessons')
+        .update({ invoice_number: invoiceNumber })
+        .eq('id', id);
+
+      if (updateError) {
+        return res.status(500).json({ error: updateError.message });
+      }
+    }
+
+    const studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+    const safeStudentName = studentName.replace(/[^a-z0-9]/gi, '');
+
+    const lessonDescription = getLessonDescription(lesson);
+    const startTime = lesson.start_time?.slice(0, 5);
+    const endTime = lesson.end_time?.slice(0, 5);
+
+    const lessonTimeDisplay = getLessonTimeDisplay(
+      lesson,
+      startTime,
+      endTime
+    );
+
+    const invoiceDate = new Date().toLocaleDateString('en-GB');
+
+    const statusText = lesson.paid ? 'PAID' : 'PAYMENT DUE';
+
+    // ========================================
+    // PAYMENT REFERENCE FALLBACK
+    // ========================================
+
+    let paymentReference = lesson.payment_reference;
+
+    if (!paymentReference) {
+
+      const initials = studentName
+        .split(" ")
+        .filter(Boolean)
+        .map(name => name[0].toUpperCase())
+        .join("");
+
+      const [year, month, day] = lesson.lesson_date.split("-");
+
+      paymentReference =
+        `${initials}${day}${month}${year.slice(2)}DR`;
+
+      await supabase
+        .from("lessons")
+        .update({
+          payment_reference: paymentReference
+        })
+        .eq("id", lesson.id);
+    }
+
+
+    const fileName = `${invoiceNumber}-${safeStudentName}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
+    // Create PDF
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: 45
+    });
+
+    doc.pipe(res);
+
+    // Brand colours
+    const navy = '#0B1F3A';
+    const blue = '#1E88E5';
+    const lightBlue = '#EAF3FF';
+    const grey = '#6B7280';
+    const lightGrey = '#E5E7EB';
+
+    // Logo path
+    const logoPath = path.join(
+      __dirname,
+      '..',
+      'public',
+      'images',
+      'rsd-logo.png'
+    );
+
+    // HEADER
+    doc.image(logoPath, 45, 35, { width: 82 });
+
+    doc
+      .fillColor(navy)
+      .fontSize(22)
+      .font('Helvetica-Bold')
+      .text('READY SET DRIVE', 145, 45);
+
+    doc
+      .fillColor(grey)
+      .fontSize(10)
+      .font('Helvetica')
+      .text('Automatic Driving Lessons', 145, 74)
+      .text('DVSA Approved Driving Instructor', 145, 90);
+
+    // Invoice box
+    doc
+      .roundedRect(390, 42, 155, 68, 8)
+      .fillAndStroke(lightBlue, blue);
+
+    doc
+      .fillColor(navy)
+      .fontSize(16)
+      .font('Helvetica-Bold')
+      .text('INVOICE', 410, 55, { width: 115, align: 'center' });
+
+    doc
+      .fillColor(grey)
+      .fontSize(8)
+      .font('Helvetica')
+      .text(invoiceNumber, 405, 82, { width: 125, align: 'center' });
+
+    // Blue divider
+    doc
+      .strokeColor(blue)
+      .lineWidth(2)
+      .moveTo(45, 135)
+      .lineTo(550, 135)
+      .stroke();
+
+    // INVOICE SUMMARY
+    doc
+      .fillColor(navy)
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text('INVOICE TO', 45, 165);
+
+    doc
+      .fillColor('#000000')
+      .fontSize(15)
+      .font('Helvetica-Bold')
+      .text(studentName, 45, 188);
+
+    doc
+      .fillColor(navy)
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text('INVOICE DETAILS', 320, 165);
+
+    doc
+      .fillColor(grey)
+      .fontSize(10)
+      .font('Helvetica')
+      .text('Invoice Date', 320, 190)
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text(invoiceDate, 440, 190);
+
+    doc
+      .fillColor(grey)
+      .font('Helvetica')
+      .text('Status', 320, 210)
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text(statusText, 440, 210);
+
+    // LESSON DETAILS CARD
+    doc
+      .roundedRect(45, 260, 505, 120, 10)
+      .strokeColor(lightGrey)
+      .lineWidth(1)
+      .stroke();
+
+    doc
+      .fillColor(navy)
+      .fontSize(13)
+      .font('Helvetica-Bold')
+      .text('LESSON DETAILS', 65, 282);
+
+    doc
+      .fillColor(grey)
+      .fontSize(10)
+      .font('Helvetica')
+      .text('Date', 65, 315)
+      .text('Time', 65, 340)
+      .text('Lesson Type', 65, 365);
+
+    doc
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text(new Date(lesson.lesson_date).toLocaleDateString('en-GB'), 170, 315)
+      .text(lessonTimeDisplay, 170, 340)
+      .text(lessonDescription, 170, 365);
+
+    // AMOUNT DUE CARD
+    doc
+      .roundedRect(45, 425, 505, 105, 12)
+      .fillAndStroke(lightBlue, blue);
+
+    doc
+      .fillColor(navy)
+      .fontSize(12)
+      .font('Helvetica-Bold')
+      .text('AMOUNT DUE', 45, 450, {
+        width: 505,
+        align: 'center'
+      });
+
+    doc
+      .fillColor(navy)
+      .fontSize(34)
+      .font('Helvetica-Bold')
+      .text(`£${Number(lesson.price || 0).toFixed(2)}`, 45, 475, {
+        width: 505,
+        align: 'center'
+      });
+
+    // ========================================
+    // PAYMENT DETAILS CARD
+    // ========================================
+
+    doc
+      .roundedRect(45, 560, 505, 120, 12)
+      .fillAndStroke(lightBlue, blue);
+
+    doc
+      .fillColor(navy)
+      .fontSize(13)
+      .font('Helvetica-Bold')
+      .text('PAYMENT DETAILS', 65, 580);
+
+    doc
+      .fillColor(grey)
+      .fontSize(10)
+      .font('Helvetica')
+      .text('Account Name', 65, 610)
+      .text('Sort Code', 65, 630)
+      .text('Account Number', 65, 650)
+      .text('Payment Reference', 300, 610);
+
+    doc
+      .fillColor('#000000')
+      .font('Helvetica-Bold')
+      .text('Mr Shuel Ahmed', 170, 610)
+      .text('40-47-68', 170, 630)
+      .text('38488827', 170, 650)
+      .text(paymentReference, 430, 610);
+
+    doc.end();
+  } catch (err) {
+    console.error('Invoice PDF error:', err);
+    res.status(500).json({ error: 'Failed to generate invoice' });
+  }
+});
+
 // =======================
 // CREATE lesson
 router.post('/', requireAuth, async (req, res) => {

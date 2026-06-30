@@ -83,6 +83,65 @@ async function downloadReceipt(lessonId) {
   window.URL.revokeObjectURL(url);
 }
 
+// ========================================
+// INVOICE DOWNLOAD
+// ========================================
+// Downloads a PDF invoice for a lesson.
+//
+// Invoice can be generated whether the lesson
+// is paid or unpaid.
+// ========================================
+async function downloadInvoice(lessonId) {
+
+  const { data } = await supabase.auth.getSession();
+
+  const token = data.session?.access_token;
+
+  const res = await fetch(
+    `${API_BASE}/lessons/${lessonId}/invoice`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+  if (!res.ok) {
+    alert("Failed to generate invoice");
+    return;
+  }
+
+  const blob = await res.blob();
+
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+
+  const contentDisposition = res.headers.get("Content-Disposition");
+
+  let filename = "invoice.pdf";
+
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="(.+)"/);
+
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  a.download = filename;
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+  window.URL.revokeObjectURL(url);
+}
+
 // Convert +447XXXXXXXXX → 447XXXXXXXXX for WhatsApp
 function phoneForWhatsApp(phone) {
   return phone.replace("+", "");
